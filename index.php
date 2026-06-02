@@ -396,9 +396,11 @@ fetch('?inbox=1')
 
     data.forEach(row => {
 
-        let msg = row.contentPreview
-            || (row.textMessage ? row.textMessage.text : '')
-            || '';
+let msg =
+    row.contentPreview ||
+    row.textMessage?.text ||
+    row.text ||
+    JSON.stringify(row);
 
         html += `
             <div class="border p-2 mb-2">

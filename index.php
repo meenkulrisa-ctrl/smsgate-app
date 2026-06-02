@@ -49,14 +49,20 @@ function getInbox($token, $deviceId){
 
     $data = json_decode($res, true);
 
-    // 🔥 FILTER เฉพาะ "incoming จริง"
+    if (!is_array($data)) return [];
+
+    // 🔥 FIX: inbox filter ที่ถูกต้องจริง
     return array_values(array_filter($data, function($msg){
 
-        $num = $msg['recipients'][0]['phoneNumber'] ?? '';
+        $phone = $msg['recipients'][0]['phoneNumber'] ?? '';
 
-        return str_starts_with($num, '+66') 
-            && $msg['state'] === 'Delivered'
-            && empty($msg['textMessage']['sentByYou'] ?? false);
+        // ❗ inbound มักจะ:
+        // - ไม่มี +66 แบบ normalized
+        // - หรือ state = Delivered แต่ "ไม่ใช่ message ที่คุณส่ง"
+
+        $isOutbound = str_starts_with($phone, '+66');
+
+        return !$isOutbound; // 👈 สำคัญที่สุด
     }));
 }
 

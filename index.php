@@ -29,22 +29,26 @@ function checkStatus($token,$messageId){
 
 function getInbox($token,$deviceId){
 
-$url = "https://api.sms-gate.app/3rdparty/v1/messages?limit=20&offset=0&deviceId=".$deviceId;
+$url = "https://api.sms-gate.app/3rdparty/v1/messages"
+     . "?limit=20"
+     . "&offset=0"
+     . "&deviceId=" . $deviceId
+     . "&direction=incoming";   // 👈 เพิ่มบรรทัดนี้
 
-    $ch = curl_init($url);
+$ch = curl_init($url);
 
-    curl_setopt_array($ch,[
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_HTTPHEADER => [
-            "Authorization: Bearer ".$token,
-            "Accept: application/json"
-        ]
-    ]);
+curl_setopt_array($ch,[
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_HTTPHEADER => [
+        "Authorization: Bearer ".$token,
+        "Accept: application/json"
+    ]
+]);
 
-    $res = curl_exec($ch);
-    curl_close($ch);
+$res = curl_exec($ch);
+curl_close($ch);
 
-    return json_decode($res,true);
+return json_decode($res,true);
 }
 
 

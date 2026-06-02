@@ -7,48 +7,47 @@ $username = 'JTFBNP';
 $password = 'cle1dbdoccuv0i';
 $deviceId = 'U-ucDm6OQfO6FlCytxNIE';
 
-function getToken() {
-    global $username, $password;
+function getToken($username,$password){
 
     $ch = curl_init('https://api.sms-gate.app/3rdparty/v1/auth/token');
 
-    curl_setopt_array($ch, [
+    curl_setopt_array($ch,[
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_POST => true,
-        CURLOPT_USERPWD => $username . ':' . $password,
+        CURLOPT_HTTPAUTH => CURLAUTH_BASIC,
+        CURLOPT_USERPWD => $username.':'.$password,
         CURLOPT_HTTPHEADER => [
+            'Accept: application/json',
             'Content-Type: application/json'
         ],
         CURLOPT_POSTFIELDS => json_encode([
-            'scopes' => ['messages:list','messages:read'],
-            'ttl' => 3600
+            'scopes'=>['messages:list'],
+            'ttl'=>3600
         ])
     ]);
 
     $res = curl_exec($ch);
     curl_close($ch);
 
-    $data = json_decode($res, true);
+    $data = json_decode($res,true);
     return $data['access_token'] ?? null;
 }
 
-$token = getToken();
+$token = getToken($username,$password);
 
-if (!$token) {
-    echo "data: " . json_encode(['error' => 'no token']) . "\n\n";
+if(!$token){
+    echo "data: ".json_encode(['error'=>'no token'])."\n\n";
     flush();
     exit;
 }
 
-$lastId = null;
+$lastId = '';
 
-while (true) {
+while(true){
 
-    $url = "https://api.sms-gate.app/3rdparty/v1/messages"
-        . "?limit=10&offset=0&deviceId=$deviceId";
+    $ch = curl_init("https://api.sms-gate.app/3rdparty/v1/messages?limit=1&offset=0&deviceId=$deviceId");
 
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [
+    curl_setopt_array($ch,[
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_HTTPHEADER => [
             "Authorization: Bearer $token"
@@ -58,18 +57,17 @@ while (true) {
     $res = curl_exec($ch);
     curl_close($ch);
 
-    $data = json_decode($res, true);
-    if (!is_array($data)) $data = [];
+    $data = json_decode($res,true);
 
-    // เอาอันล่าสุด
-    $latest = $data[0] ?? null;
+    $msg = $data[0] ?? null;
 
-    if ($latest && $latest['id'] !== $lastId) {
-        $lastId = $latest['id'];
+    if($msg && $msg['id'] !== $lastId){
 
-        echo "data: " . json_encode($latest) . "\n\n";
+        $lastId = $msg['id'];
+
+        echo "data: ".json_encode($msg)."\n\n";
         flush();
     }
 
-    sleep(2);
+    sleep(3);
 }

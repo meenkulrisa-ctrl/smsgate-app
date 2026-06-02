@@ -49,19 +49,6 @@ function apiRequest($method, $endpoint, $body = null) {
 // Action: ส่ง SMS
 // ==========================================
 function sendSMS($phone, $message) {
-    const res = await fetch('', { method: 'POST', body: form });
-
-const text = await res.text();
-console.log(text);
-
-try {
-    const json = JSON.parse(text);
-    console.log(json);
-} catch(e) {
-    alert(text);
-}
-    global $DEVICE_ID;
-
     // แปลงเบอร์เป็นรูปแบบ +66xxxxxxxxx
     $phone = preg_replace('/\D/', '', $phone);
 

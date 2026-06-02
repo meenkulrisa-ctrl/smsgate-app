@@ -30,9 +30,9 @@ function checkStatus($token,$messageId){
 function getInbox($token, $deviceId){
 
     $url = "https://api.sms-gate.app/3rdparty/v1/messages"
-         . "?limit=20"
-         . "&offset=0"
-         . "&deviceId=" . $deviceId;
+        . "?limit=20"
+        . "&offset=0"
+        . "&deviceId=" . $deviceId;
 
     $ch = curl_init($url);
 
@@ -49,13 +49,16 @@ function getInbox($token, $deviceId){
 
     $data = json_decode($res, true);
 
-    // ✅ FILTER เฉพาะ inbox (incoming)
+    // 🔥 FILTER เฉพาะ "incoming จริง"
     return array_values(array_filter($data, function($msg){
-        return isset($msg['recipients'][0]['phoneNumber'])
-            && str_starts_with($msg['recipients'][0]['phoneNumber'], '+');
+
+        $num = $msg['recipients'][0]['phoneNumber'] ?? '';
+
+        return str_starts_with($num, '+66') 
+            && $msg['state'] === 'Delivered'
+            && empty($msg['textMessage']['sentByYou'] ?? false);
     }));
 }
-
 
 $result = '';
 $status = '';

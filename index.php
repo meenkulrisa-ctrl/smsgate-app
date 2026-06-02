@@ -1,50 +1,127 @@
 <?php
 
-$sent = false;
+$result = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $username = $_POST['username'] ?? '';
-    $password = $_POST['password'] ?? '';
-    $deviceId = $_POST['deviceId'] ?? '';
-
-    $phone = preg_replace('/[^0-9]/', '', $_POST['phone'] ?? '');
+    $phone = trim($_POST['phone']);
+    $message = trim($_POST['message']);
+    $phone = preg_replace('/[^0-9]/', '', $_POST['phone']);
     $phone = '+66' . ltrim($phone, '0');
 
-    $message = trim($_POST['message'] ?? '');
+    // SMSGate Credentials
+    $username = 'JTFBNP';
+    $password = 'cle1dbdoccuv0i';
+    $deviceId = 'U-ucDm6OQfO6FlCytxNIE';
 
-    $sent = true;
+    // =========================
+    // STEP 1 : GET TOKEN
+    // =========================
 
-    // MOCK RESULT
-    $messageStatus = [
-        'id' => 'MSG-' . rand(1000,9999),
-        'state' => 'Pending'
-    ];
+    $ch = curl_init('https://api.sms-gate.app/3rdparty/v1/auth/token');
 
-    // MOCK INBOX
-    $inbox = [
-        [
-            'createdAt' => date('Y-m-d H:i:s'),
-            'sender' => '+66812345678',
-            'contentPreview' => 'สวัสดีครับ'
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST => true,
+        CURLOPT_HTTPAUTH => CURLAUTH_BASIC,
+        CURLOPT_USERPWD => $username . ':' . $password,
+        CURLOPT_HTTPHEADER => [
+            'Accept: application/json',
+            'Content-Type: application/json'
         ],
-        [
-            'createdAt' => date('Y-m-d H:i:s'),
-            'sender' => '+66999999999',
-            'contentPreview' => 'ทดสอบตอบกลับ'
-        ]
-    ];
+        CURLOPT_POSTFIELDS => json_encode([
+'scopes' => [
+    'devices:list',
+    'messages:read',
+    'messages:write',
+    'messages:send'
+],
+            'ttl' => 3600
+        ])
+    ]);
+
+    $tokenResponse = curl_exec($ch);
+    $tokenCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+    curl_close($ch);
+
+    $tokenData = json_decode($tokenResponse, true);
+
+    if (!isset($tokenData['access_token'])) {
+
+        $result = '
+        <div class="alert alert-danger">
+            <h5>Token Error</h5>
+            <strong>HTTP CODE:</strong> ' . $tokenCode . '
+            <hr>
+            <pre>' . htmlspecialchars($tokenResponse) . '</pre>
+        </div>';
+
+    } else {
+
+        $token = $tokenData['access_token'];
+
+        // =========================
+        // STEP 2 : SEND SMS
+        // =========================
+
+        $payload = [
+            'deviceId' => $deviceId,
+            'phoneNumbers' => [$phone],
+            'textMessage' => [
+                'text' => $message
+            ],
+            'simNumber' => 2
+        ];
+
+        $ch = curl_init('https://api.sms-gate.app/3rdparty/v1/messages?skipPhoneValidation=true');
+
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_HTTPHEADER => [
+                'Accept: application/json',
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $token
+            ],
+            CURLOPT_POSTFIELDS => json_encode($payload)
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        curl_close($ch);
+
+        $result = '
+        <div class="alert alert-info">
+            <h5>SMS Result</h5>
+
+            <p>
+                <strong>HTTP CODE:</strong> ' . $httpCode . '
+            </p>
+
+            <hr>
+
+            <strong>Payload:</strong>
+            <pre>' . htmlspecialchars(json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)) . '</pre>
+
+            <strong>Response:</strong>
+            <pre>' . htmlspecialchars($response) . '</pre>
+        </div>';
+    }
 }
 
 ?>
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="th">
+
 <head>
 
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-<title>SMS Gateway Template</title>
+<title>SMS Gateway</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
@@ -54,227 +131,80 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <div class="container py-5">
 
-<div class="row justify-content-center">
+    <div class="row justify-content-center">
 
-<div class="col-lg-8">
+        <div class="col-md-8">
 
-<div class="card shadow border-0">
+            <div class="card shadow-lg border-0">
 
-<div class="card-header bg-primary text-white">
+                <div class="card-header bg-primary text-white text-center">
 
-<h3 class="mb-0">
-SMS Gateway Template
-</h3>
+                    <h3 class="mb-0">
+                        SMS Gateway
+                    </h3>
 
-</div>
+                </div>
 
-<div class="card-body">
+                <div class="card-body p-4">
 
-<form method="post">
+                    <form method="POST">
 
-<div class="row">
+                        <div class="mb-3">
 
-<div class="col-md-4 mb-3">
-<label>Username</label>
-<input
-type="text"
-name="username"
-class="form-control"
-required>
-</div>
-
-<div class="col-md-4 mb-3">
-<label>Password</label>
-<input
-type="password"
-name="password"
-class="form-control"
-required>
-</div>
-
-<div class="col-md-4 mb-3">
-<label>Device ID</label>
-<input
-type="text"
-name="deviceId"
-class="form-control"
-required>
-</div>
-
-</div>
-
-<div class="mb-3">
-
-<label>Phone Number</label>
+                            <label class="form-label">
+                                Phone Number
+                            </label>
 
 <div class="input-group">
-
-<span class="input-group-text">
-+66
-</span>
-
-<input
-type="text"
-name="phone"
-class="form-control"
-placeholder="812345678"
-required>
-
+    <span class="input-group-text">+66</span>
+    <input
+        type="text"
+        name="phone"
+        class="form-control"
+        placeholder="ใส่เบอร์ที่จะส่งครับอิอิ"
+        required>
 </div>
 
-</div>
+                        </div>
 
-<div class="mb-3">
+                        <div class="mb-3">
 
-<label>Message</label>
+                            <label class="form-label">
+                                Message
+                            </label>
 
-<textarea
-name="message"
-rows="4"
-class="form-control"
-required></textarea>
+                            <textarea
+                                name="message"
+                                rows="5"
+                                class="form-control"
+                                placeholder="พิมพ์ข้อความที่ต้องการส่ง..."
+                                required></textarea>
 
-</div>
+                        </div>
 
-<div class="alert alert-secondary">
+                        <button class="btn btn-success w-100">
 
-<strong>SIM:</strong> SIM2
+                            Send SMS
 
-</div>
+                        </button>
 
-<button
-type="submit"
-class="btn btn-success w-100"
-onclick="return confirm('ยืนยันการส่ง SMS ?')">
+                    </form>
 
-Send SMS
+                    <hr>
 
-</button>
+                    <?= $result ?>
 
-</form>
+                </div>
 
-<?php if($sent): ?>
+            </div>
 
-<hr>
+        </div>
 
-<div class="alert alert-info">
-
-<h5>Preview</h5>
-
-<p>
-
-<strong>To:</strong>
-<?= htmlspecialchars($phone) ?>
-
-</p>
-
-<p>
-
-<strong>Message:</strong><br>
-
-<?= nl2br(htmlspecialchars($message)) ?>
-
-</p>
+    </div>
 
 </div>
-
-<div class="card mb-3">
-
-<div class="card-header bg-warning">
-
-Message Status
-
-</div>
-
-<div class="card-body">
-
-<table class="table table-bordered">
-
-<tr>
-<th>ID</th>
-<td><?= $messageStatus['id'] ?></td>
-</tr>
-
-<tr>
-<th>Status</th>
-<td><?= $messageStatus['state'] ?></td>
-</tr>
-
-</table>
-
-</div>
-
-</div>
-
-<div class="card">
-
-<div class="card-header bg-dark text-white">
-
-Inbox (Reply SMS)
-
-</div>
-
-<div class="card-body">
-
-<table class="table table-striped">
-
-<thead>
-
-<tr>
-
-<th>เวลา</th>
-<th>จาก</th>
-<th>ข้อความ</th>
-
-</tr>
-
-</thead>
-
-<tbody>
-
-<?php foreach($inbox as $sms): ?>
-
-<tr>
-
-<td><?= htmlspecialchars($sms['createdAt']) ?></td>
-
-<td><?= htmlspecialchars($sms['sender']) ?></td>
-
-<td><?= htmlspecialchars($sms['contentPreview']) ?></td>
-
-</tr>
-
-<?php endforeach; ?>
-
-</tbody>
-
-</table>
-
-</div>
-
-</div>
-
-<?php endif; ?>
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-<script>
-
-setInterval(function(){
-
-console.log('Auto Refresh 5 sec');
-
-},5000);
-
-</script>
 
 </body>
+
 </html>
+แก้ตรงไหนบ้าง

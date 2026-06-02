@@ -27,28 +27,33 @@ function checkStatus($token,$messageId){
 }
 
 
-function getInbox($token,$deviceId){
+function getInbox($token, $deviceId){
 
-$url = "https://api.sms-gate.app/3rdparty/v1/messages"
-     . "?limit=20"
-     . "&offset=0"
-     . "&deviceId=" . $deviceId
-     . "&direction=incoming";   // 👈 เพิ่มบรรทัดนี้
+    $url = "https://api.sms-gate.app/3rdparty/v1/messages"
+         . "?limit=20"
+         . "&offset=0"
+         . "&deviceId=" . $deviceId;
 
-$ch = curl_init($url);
+    $ch = curl_init($url);
 
-curl_setopt_array($ch,[
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_HTTPHEADER => [
-        "Authorization: Bearer ".$token,
-        "Accept: application/json"
-    ]
-]);
+    curl_setopt_array($ch,[
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => [
+            "Authorization: Bearer ".$token,
+            "Accept: application/json"
+        ]
+    ]);
 
-$res = curl_exec($ch);
-curl_close($ch);
+    $res = curl_exec($ch);
+    curl_close($ch);
 
-return json_decode($res,true);
+    $data = json_decode($res, true);
+
+    // ✅ FILTER เฉพาะ inbox (incoming)
+    return array_values(array_filter($data, function($msg){
+        return isset($msg['recipients'][0]['phoneNumber'])
+            && str_starts_with($msg['recipients'][0]['phoneNumber'], '+');
+    }));
 }
 
 

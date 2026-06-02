@@ -215,7 +215,7 @@ $responseData = json_decode($response,true);
 $messageId = $responseData['id'] ?? '';
 if($messageId){
 
-    sleep(2);
+    sleep(5);
 
     $status = checkStatus($token,$messageId);
 
@@ -399,21 +399,22 @@ fetch('?inbox=1')
         <div class="card-body">
     `;
 
-    data.forEach(row => {
+data.forEach(row => {
 
-let msg =
-    row.contentPreview ||
-    row.textMessage?.text ||
-    row.text ||
-    JSON.stringify(row);
+    let msg =
+        row.contentPreview ||
+        (row.textMessage ? row.textMessage.text : '') ||
+        '';
 
-        html += `
-            <div class="border p-2 mb-2">
-                <b>From:</b> ${row.sender || '-'}<br>
-                <b>Message:</b> ${msg}
-            </div>
-        `;
-    });
+    html += `
+        <div class="border p-2 mb-2">
+            <b>From:</b> ${row.recipients?.[0]?.phoneNumber || '-'}<br>
+            <b>State:</b> ${row.state || '-'}<br>
+            <b>Message:</b><br>
+            ${msg}
+        </div>
+    `;
+});
 
     html += `</div></div>`;
     document.getElementById('inbox').innerHTML = html;

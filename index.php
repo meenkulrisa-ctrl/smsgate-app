@@ -30,7 +30,7 @@ function checkStatus($token,$messageId){
 function getInbox($token,$deviceId){
 
     $url =
-    "https://api.sms-gate.app/3rdparty/v1/inbox?limit=20&deviceId=".$deviceId;
+    "https://api.sms-gate.app/3rdparty/v1/messages?limit=20&deviceId=".$deviceId."&includeContent=true";
 
     $ch = curl_init($url);
 
@@ -42,7 +42,6 @@ function getInbox($token,$deviceId){
     ]);
 
     $res = curl_exec($ch);
-
     curl_close($ch);
 
     return json_decode($res,true);
@@ -52,8 +51,8 @@ function getInbox($token,$deviceId){
 $result = '';
 $status = '';
 $messageId = '';
-
 if(isset($_GET['inbox'])){
+
     $ch = curl_init('https://api.sms-gate.app/3rdparty/v1/auth/token');
 
     curl_setopt_array($ch,[
@@ -65,23 +64,16 @@ if(isset($_GET['inbox'])){
             'Accept: application/json',
             'Content-Type: application/json'
         ],
-CURLOPT_POSTFIELDS => json_encode([
-'scopes'=>[
-    'devices:list',
-    'messages:read',
-    'messages:send',
-    'messages:write',
-    'inbox:list'
-],
-    'ttl' => 3600
-])
+        CURLOPT_POSTFIELDS => json_encode([
+            'scopes'=>[
+                'devices:list',
+                'messages:read'
+            ],
+            'ttl' => 3600
+        ])
     ]);
 
-    $tokenData = json_decode(curl_exec($ch),true);
-echo '<pre>';
-print_r($tokenData);
-echo '</pre>';
-exit;
+    $tokenData = json_decode(curl_exec($ch), true);
     curl_close($ch);
 
     $token = $tokenData['access_token'] ?? '';
@@ -97,12 +89,13 @@ exit;
         ]
     ]);
 
+    header('Content-Type: application/json');
     echo curl_exec($ch);
 
     curl_close($ch);
-
     exit;
 }
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $phone = trim($_POST['phone']);
@@ -346,89 +339,51 @@ htmlspecialchars($response).
     </div>
 
 </div>
-    <?php
-
-
-?>
 
 <script>
-
-function loadInbox(){
-
+function loadInbox() {
     fetch('?inbox=1')
-    .then(r=>r.json())
-    .then(data=>{
+        .then(r => r.json())
+        .then(data => {
+
             console.log(data);
 
-    let rows = data.items || data;
+            let rows = Array.isArray(data)
+                ? data
+                : (data.items || []);
 
-});
-
-        let html='';
-
-        html += `
-        <div class="card mt-4">
-        <div class="card-header bg-dark text-white">
-        Inbox / Reply SMS
-        </div>
-        <div class="card-body">
-        `;
-if(!Array.isArray(data)){
-    console.log(data);
-    return;
-}
-
-data.forEach(function(row){
-
-            html += `
-            <div class="border rounded p-2 mb-2">
-
-            <b>From:</b> ${row.sender}<br>
-
-            <b>SIM:</b> ${row.simNumber}<br>
-
-            <b>Date:</b> ${row.createdAt}<br>
-
-            <b>Message:</b><br>
-
-            ${row.contentPreview}
-
-            </div>
+            let html = `
+                <div class="card mt-4">
+                    <div class="card-header bg-dark text-white">
+                        Inbox / Reply SMS
+                    </div>
+                    <div class="card-body">
             `;
-        });
 
-        html += '</div></div>';
+            if (rows.length === 0) {
+                html += `<p class="text-muted">ไม่มีข้อความ</p>`;
+            }
 
-        document.getElementById('inbox').innerHTML = html;
+            rows.forEach(row => {
+                html += `
+                    <div class="border rounded p-2 mb-2">
+                        <b>From:</b> ${row.sender || '-'}<br>
+                        <b>Date:</b> ${row.createdAt || '-'}<br>
+                        <b>Message:</b><br>
+                        ${row.contentPreview || ''}
+                    </div>
+                `;
+            });
 
-    })
-    .catch(()=>{});
+            html += `</div></div>`;
+
+            document.getElementById('inbox').innerHTML = html;
+        })
+        .catch(err => console.log(err));
 }
-
-loadInbox();
-
-setInterval(loadInbox,5000);
-
-</script>
     
-</body>
-    <script>
-
-document.querySelector('form').addEventListener('submit', function(e){
-
-    let phone = document.querySelector('[name=phone]').value;
-    let msg = document.querySelector('[name=message]').value;
-
-    if(!confirm(
-        "ยืนยันการส่ง SMS\n\n" +
-        "เบอร์ : +66" + phone.replace(/^0/,'') +
-        "\n\nข้อความ:\n" + msg
-    )){
-        e.preventDefault();
-    }
-
-});
-
+loadInbox();
+setInterval(loadInbox, 5000);
 </script>
 
 </html>

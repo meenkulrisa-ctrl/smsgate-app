@@ -53,12 +53,10 @@ function getInbox($token, $deviceId){
 
     return array_values(array_filter($data, function($msg){
 
-        // ✅ inbox จริง = มี sender และไม่ใช่ข้อความที่คุณส่ง
-        $isIncoming = isset($msg['sender']) || isset($msg['from']);
-
+        // ✅ inbox = ไม่ใช่ข้อความที่คุณส่ง
         $sentByYou = $msg['textMessage']['sentByYou'] ?? false;
 
-        return $isIncoming && !$sentByYou;
+        return !$sentByYou;
     }));
 }
 function getOutbox($token, $deviceId){
@@ -152,12 +150,19 @@ if(isset($_GET['inbox'])){
         ]
     ]);
 
-    $res = curl_exec($ch);
-    curl_close($ch);
+$res = curl_exec($ch);
+curl_close($ch);
 
-    header('Content-Type: application/json');
-    echo $res;
-    exit;
+$data = json_decode($res, true);
+$data = is_array($data) ? $data : [];
+
+$inbox = array_values(array_filter($data, function($msg){
+    return empty($msg['textMessage']['sentByYou']);
+}));
+
+header('Content-Type: application/json');
+echo json_encode($inbox);
+exit;
 }
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
@@ -213,11 +218,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     } else {
 
-        $token = $tokenData['access_token'];
-        $inboxMessages = getInbox(
-    $token,
-    $deviceId
-);
+$token = $tokenData['access_token'];
 
         // =========================
         // STEP 2 : SEND SMS
@@ -405,6 +406,8 @@ htmlspecialchars($response).
 
 <script>
 function loadInbox(){
+document.getElementById('inbox').innerHTML =
+`<div class="text-muted p-2">กำลังโหลดข้อความ...</div>`;
 
 fetch('?inbox=1')
 .then(async r => {
@@ -441,26 +444,28 @@ data.forEach(row => {
 
     let msg =
         row.contentPreview ||
-        (row.textMessage ? row.textMessage.text : '') ||
+        row.textMessage?.text ||
+        row.text ||
         '';
+
+    let from =
+        row.sender ||
+        row.from ||
+        row.recipients?.[0]?.phoneNumber ||
+        'unknown';
 
     html += `
         <div class="border p-2 mb-2">
-            <b>From:</b> ${row.recipients?.[0]?.phoneNumber || '-'}<br>
-            <b>State:</b> ${row.state || '-'}<br>
-            <b>Message:</b><br>
-            ${msg}
+            <b>From:</b> ${from}<br>
+            <b>Message:</b> ${msg}
         </div>
     `;
 });
 
-    html += `</div></div>`;
-    document.getElementById('inbox').innerHTML = html;
-});
-}
-
 loadInbox();
-setInterval(loadInbox, 5000);
+setInterval(() => {
+    loadInbox();
+}, 3000);
 </script>
 
 </html>

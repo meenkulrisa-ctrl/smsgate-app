@@ -29,7 +29,7 @@ function checkStatus($token,$messageId){
 
 function getInbox($token,$deviceId){
 
-    $url = "https://api.sms-gate.app/3rdparty/v1/inbox?limit=20&offset=0&deviceId=".$deviceId;
+$url = "https://api.sms-gate.app/3rdparty/v1/messages?limit=20&deviceId=".$deviceId."&includeContent=true";
 
     $ch = curl_init($url);
 
@@ -356,45 +356,44 @@ function loadInbox(){
 
     fetch('?inbox=1')
     .then(r => r.json())
-    .then(data => {
+.then(data => {
 
-        console.log(data);
+    console.log(data);
 
-        if (!Array.isArray(data)) {
-            console.log("API error:", data);
-            return;
-        }
+    if (!Array.isArray(data)) {
+        console.log("API error:", data);
+        return;
+    }
 
-        let rows = data;
+    let rows = data;
 
-        let html = `
+    let html = `
         <div class="card mt-4">
-            <div class="card-header bg-dark text-white">
-                Inbox / Reply SMS
+        <div class="card-header bg-dark text-white">
+        Inbox / Messages
+        </div>
+        <div class="card-body">
+    `;
+
+    rows.forEach(row => {
+
+        let msg = row.contentPreview
+            || (row.textMessage ? row.textMessage.text : '')
+            || '';
+
+        html += `
+            <div class="border rounded p-2 mb-2">
+                <b>From:</b> ${row.sender || '-'}<br>
+                <b>Date:</b> ${row.createdAt || '-'}<br>
+                <b>Message:</b><br>
+                ${msg}
             </div>
-            <div class="card-body">
         `;
+    });
 
-        if(rows.length === 0){
-            html += `<p class="text-muted">ไม่มีข้อความ</p>`;
-        }
-
-        rows.forEach(row => {
-            html += `
-                <div class="border rounded p-2 mb-2">
-                    <b>From:</b> ${row.sender || '-'}<br>
-                    <b>SIM:</b> ${row.simNumber || '-'}<br>
-                    <b>Date:</b> ${row.createdAt || '-'}<br>
-                    <b>Message:</b><br>
-                    ${row.contentPreview || ''}
-                </div>
-            `;
-        });
-
-        html += `</div></div>`;
-
-        document.getElementById('inbox').innerHTML = html;
-    })
+    html += `</div></div>`;
+    document.getElementById('inbox').innerHTML = html;
+})
     .catch(err => console.log(err));
 }
 

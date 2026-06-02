@@ -33,15 +33,21 @@ function apiRequest($method, $endpoint, $body = null) {
 // ==========================================
 function sendSMS($phone, $message) {
     global $DEVICE_ID;
-    $res = apiRequest("POST", "/message", [
+
+    // แปลงเบอร์เป็นรูปแบบ +66xxxxxxxxx
+    $phone = preg_replace('/\D/', '', $phone);
+
+    if (substr($phone, 0, 1) === '0') {
+        $phone = '+66' . substr($phone, 1);
+    } elseif (substr($phone, 0, 2) === '66') {
+        $phone = '+' . $phone;
+    }
+
+    return apiRequest("POST", "/message", [
         "deviceId"    => $DEVICE_ID,
-        $phone = preg_replace('/\D/', '', $phone);
-if (substr($phone,0,1) == '0') {
-    $phone = '+66' . substr($phone,1);
-}
+        "phoneNumber" => $phone,
         "message"     => $message,
     ]);
-    return $res;
 }
 
 // ==========================================

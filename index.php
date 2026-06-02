@@ -91,7 +91,11 @@ if(isset($_GET['inbox'])){
     }
 
     $ch = curl_init(
-        'https://api.sms-gate.app/3rdparty/v1/messages?includeContent=true?limit=20&offset=0&deviceId='.$deviceId
+        $url = "https://api.sms-gate.app/3rdparty/v1/messages"
+     . "?limit=20"
+     . "&offset=0"
+     . "&deviceId=" . $deviceId
+     . "&includeContent=true";
     );
 
     curl_setopt_array($ch,[

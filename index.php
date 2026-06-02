@@ -65,13 +65,13 @@ if(isset($_GET['inbox'])){
             'Content-Type: application/json'
         ],
         CURLOPT_POSTFIELDS => json_encode([
-'scopes'=>[
-    'devices:list',
-    'messages:read',
-    'messages:write',
-    'messages:send',
-    'messages:list'   // ⭐ เพิ่มตัวนี้
-],
+            'scopes'=>[
+                'devices:list',
+                'messages:read',
+                'messages:write',
+                'messages:send',
+                'messages:list'
+            ],
             'ttl' => 3600
         ])
     ]);
@@ -90,21 +90,20 @@ if(isset($_GET['inbox'])){
         exit;
     }
 
-    $ch = curl_init(
-$url = "https://api.sms-gate.app/3rdparty/v1/messages"
-    . "?limit=20"
-    . "&offset=0"
-    . "&deviceId=" . $deviceId;
+    $url = "https://api.sms-gate.app/3rdparty/v1/messages"
+        . "?limit=20"
+        . "&offset=0"
+        . "&deviceId=" . $deviceId;
 
-$ch = curl_init($url);
+    $ch = curl_init($url);
 
-curl_setopt_array($ch, [
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_HTTPHEADER => [
-        'Authorization: Bearer ' . $token,
-        'Accept: application/json'
-    ]
-]);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => [
+            'Authorization: Bearer '.$token,
+            'Accept: application/json'
+        ]
+    ]);
 
     $res = curl_exec($ch);
     curl_close($ch);

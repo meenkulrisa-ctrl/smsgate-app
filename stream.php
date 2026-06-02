@@ -51,7 +51,9 @@ while (true) {
     curl_close($ch);
 
     $data = json_decode($res, true);
-
+echo "data: " . json_encode($data) . "\n\n";
+flush();
+exit;
     if (!is_array($data)) {
         sleep(3);
         continue;
@@ -60,9 +62,9 @@ while (true) {
 foreach ($data as $msg) {
 
     // รับเฉพาะข้อความเข้า
-echo "data: " . json_encode($data) . "\n\n";
-flush();
-exit;
+if (!empty($msg['textMessage']['sentByYou'])) {
+    continue;
+}
 
     $id = $msg['id'] ?? '';
 

@@ -60,9 +60,9 @@ while (true) {
 foreach ($data as $msg) {
 
     // รับเฉพาะข้อความเข้า
-    if (!empty($msg['textMessage']['sentByYou'])) {
-        continue;
-    }
+echo "data: " . json_encode($data) . "\n\n";
+flush();
+exit;
 
     $id = $msg['id'] ?? '';
 

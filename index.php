@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'textMessage' => [
                 'text' => $message
             ],
-            'simNumber' => 1
+            'simNumber' => 2
         ];
 
         $ch = curl_init('https://api.sms-gate.app/3rdparty/v1/messages');

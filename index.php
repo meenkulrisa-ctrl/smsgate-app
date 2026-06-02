@@ -6,6 +6,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $phone = trim($_POST['phone']);
     $message = trim($_POST['message']);
+    $phone = preg_replace('/[^0-9]/', '', $_POST['phone']);
+    $phone = '+66' . ltrim($phone, '0');
 
     // SMSGate Credentials
     $username = 'JTFBNP';
@@ -153,12 +155,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 Phone Number
                             </label>
 
-                            <input
-                                type="text"
-                                name="phone"
-                                class="form-control"
-                                placeholder="0812345678"
-                                required>
+<div class="input-group">
+    <span class="input-group-text">+66</span>
+    <input
+        type="text"
+        name="phone"
+        class="form-control"
+        placeholder="ใส่เบอร์ที่จะส่งครับอิอิ"
+        required>
+</div>
 
                         </div>
 

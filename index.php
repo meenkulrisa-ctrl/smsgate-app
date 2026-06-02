@@ -29,7 +29,7 @@ function checkStatus($token,$messageId){
 
 function getInbox($token,$deviceId){
 
-$url = "https://api.sms-gate.app/3rdparty/v1/messages?limit=20&offset=0&deviceId=".$deviceId."&includeContent=true";
+$url = "https://api.sms-gate.app/3rdparty/v1/messages?limit=20&offset=0&deviceId=".$deviceId;
 
     $ch = curl_init($url);
 
@@ -91,11 +91,10 @@ if(isset($_GET['inbox'])){
     }
 
     $ch = curl_init(
-        $url = "https://api.sms-gate.app/3rdparty/v1/messages"
-     . "?limit=20"
-     . "&offset=0"
-     . "&deviceId=" . $deviceId
-     . "&includeContent=true";
+$url = "https://api.sms-gate.app/3rdparty/v1/inbox"
+    . "?limit=20"
+    . "&offset=0"
+    . "&deviceId=" . $deviceId;
     );
 
     curl_setopt_array($ch,[
@@ -373,10 +372,10 @@ fetch('?inbox=1')
 })
 .then(data => {
 
-    if (!Array.isArray(data)) {
-        console.log("API error:", data);
-        return;
-    }
+if (!Array.isArray(data)) {
+    console.log("API error:", data?.message || data);
+    return;
+}
 
     let rows = data;
 

@@ -341,47 +341,51 @@ htmlspecialchars($response).
 </div>
 
 <script>
-function loadInbox() {
+function loadInbox(){
+
     fetch('?inbox=1')
-        .then(r => r.json())
-        .then(data => {
+    .then(r => r.json())
+    .then(data => {
 
-            console.log(data);
+        console.log(data);
 
-            let rows = Array.isArray(data)
-                ? data
-                : (data.items || []);
+        let rows = Array.isArray(data)
+            ? data
+            : (data.items || []);
 
-            let html = `
-                <div class="card mt-4">
-                    <div class="card-header bg-dark text-white">
-                        Inbox / Reply SMS
-                    </div>
-                    <div class="card-body">
+        let html = `
+        <div class="card mt-4">
+            <div class="card-header bg-dark text-white">
+                Inbox / Reply SMS
+            </div>
+            <div class="card-body">
+        `;
+
+        if(rows.length === 0){
+            html += `<p class="text-muted">ไม่มีข้อความ</p>`;
+        }
+
+        rows.forEach(row => {
+            html += `
+                <div class="border rounded p-2 mb-2">
+                    <b>From:</b> ${row.sender || '-'}<br>
+                    <b>SIM:</b> ${row.simNumber || '-'}<br>
+                    <b>Date:</b> ${row.createdAt || '-'}<br>
+                    <b>Message:</b><br>
+                    ${row.contentPreview || ''}
+                </div>
             `;
+        });
 
-            if (rows.length === 0) {
-                html += `<p class="text-muted">ไม่มีข้อความ</p>`;
-            }
+        html += `</div></div>`;
 
-            rows.forEach(row => {
-                html += `
-                    <div class="border rounded p-2 mb-2">
-                        <b>From:</b> ${row.sender || '-'}<br>
-                        <b>Date:</b> ${row.createdAt || '-'}<br>
-                        <b>Message:</b><br>
-                        ${row.contentPreview || ''}
-                    </div>
-                `;
-            });
-
-            html += `</div></div>`;
-
-            document.getElementById('inbox').innerHTML = html;
-        })
-        .catch(err => console.log(err));
+        document.getElementById('inbox').innerHTML = html;
+    })
+    .catch(err => {
+        console.log(err);
+    });
 }
-    
+
 loadInbox();
 setInterval(loadInbox, 5000);
 </script>

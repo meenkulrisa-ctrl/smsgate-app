@@ -156,9 +156,17 @@ curl_close($ch);
 $data = json_decode($res, true);
 $data = is_array($data) ? $data : [];
 
-$inbox = array_values(array_filter($data, function($msg){
+$inbox = array_map(function($msg){
+
+    return [
+        "text" => $msg["textMessage"]["text"] ?? "",
+        "state" => $msg["state"] ?? "",
+        "time" => $msg["createdAt"] ?? ""
+    ];
+
+}, array_values(array_filter($data, function($msg){
     return empty($msg['textMessage']['sentByYou']);
-}));
+})));
 
 header('Content-Type: application/json');
 echo json_encode($inbox);
@@ -415,13 +423,22 @@ function startStream() {
 
         const html = `
             <div class="border p-2 mb-2">
-                <b>From:</b> ${msg.recipients?.[0]?.phoneNumber || '-'}<br>
-                <b>Message:</b> ${msg.textMessage?.text || ''}
+<b>Status:</b> ${msg.state || '-'}<br>
+<b>Message:</b> ${msg.textMessage?.text || ''}
             </div>
         `;
+const container = document.getElementById("inbox");
 
-        document.getElementById("inbox").innerHTML =
-            html + document.getElementById("inbox").innerHTML;
+es.onmessage = function(event) {
+
+    const msg = JSON.parse(event.data);
+
+    container.insertAdjacentHTML("afterbegin", `
+        <div class="border p-2 mb-2">
+            <b>Message:</b> ${msg.textMessage?.text || ''}
+        </div>
+    `);
+};
     };
 }
 

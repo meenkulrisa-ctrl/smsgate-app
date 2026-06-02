@@ -31,11 +31,11 @@ curl_close($ch);
 $token = $tokenData['access_token'] ?? '';
 
 if (!$token) exit;
+$lastId = '';
 
-// loop realtime
 while (true) {
 
-    $url = "https://api.sms-gate.app/3rdparty/v1/messages?limit=1&offset=0&deviceId=$deviceId";
+    $url = "https://api.sms-gate.app/3rdparty/v1/messages?limit=20&offset=0&deviceId=$deviceId";
 
     $ch = curl_init($url);
 
@@ -52,14 +52,31 @@ while (true) {
 
     $data = json_decode($res, true);
 
-    $msg = $data[0] ?? null;
-
-    if ($msg) {
-        echo "data: " . json_encode($msg) . "\n\n";
+    if (!is_array($data)) {
+        sleep(3);
+        continue;
     }
 
-    ob_flush();
-    flush();
+    foreach ($data as $msg) {
+
+        // รับเฉพาะข้อความเข้า
+        if (!empty($msg['textMessage']['sentByYou'])) {
+            continue;
+        }
+
+        $id = $msg['id'] ?? '';
+
+        // ส่งเฉพาะข้อความใหม่
+        if ($id && $id !== $lastId) {
+
+            $lastId = $id;
+
+            echo "data: " . json_encode($msg) . "\n\n";
+
+            flush();
+        }
+    }
 
     sleep(3);
 }
+

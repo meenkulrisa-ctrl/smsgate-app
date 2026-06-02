@@ -31,7 +31,7 @@ curl_close($ch);
 $token = $tokenData['access_token'] ?? '';
 
 if (!$token) exit;
-$lastId = '';
+$sentIds = [];
 
 while (true) {
 
@@ -57,25 +57,30 @@ while (true) {
         continue;
     }
 
-    foreach ($data as $msg) {
+foreach ($data as $msg) {
 
-        // รับเฉพาะข้อความเข้า
-        if (!empty($msg['textMessage']['sentByYou'])) {
-            continue;
-        }
-
-        $id = $msg['id'] ?? '';
-
-        // ส่งเฉพาะข้อความใหม่
-        if ($id && $id !== $lastId) {
-
-            $lastId = $id;
-
-            echo "data: " . json_encode($msg) . "\n\n";
-
-            flush();
-        }
+    // รับเฉพาะข้อความเข้า
+    if (!empty($msg['textMessage']['sentByYou'])) {
+        continue;
     }
+
+    $id = $msg['id'] ?? '';
+
+    if (!$id) {
+        continue;
+    }
+
+    // ถ้าเคยส่งไปแล้ว ข้าม
+    if (in_array($id, $sentIds)) {
+        continue;
+    }
+
+    $sentIds[] = $id;
+
+    echo "data: " . json_encode($msg) . "\n\n";
+
+    flush();
+        }
 
     sleep(3);
 }

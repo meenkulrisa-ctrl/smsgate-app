@@ -6,7 +6,7 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 $TOKEN     = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzbXMtZ2F0ZS5hcHAiLCJzdWIiOiJKVEZCTlAiLCJleHAiOjE3ODA0MzU3MTYsImlhdCI6MTc4MDQzNDgxNiwianRpIjoiNjJva2F0R2NjdktpYzNzODdLVFFoIiwidXNlcl9pZCI6IkpURkJOUCIsInNjb3BlcyI6WyJkZXZpY2VzOmxpc3QiLCJtZXNzYWdlczpsaXN0IiwibWVzc2FnZXM6cmVhZCIsIm1lc3NhZ2VzOndyaXRlIiwibWVzc2FnZXM6c2VuZCJdfQ.OSsflbYhVtYaATGULTvj6w4k9qpPMPsWmbe5r6_kkcY";
 $DEVICE_ID = "U-ucDm6OQfO6FlCytxNIE";
-$API_BASE = "https://api.sms-gate.app/3rdparty/v1";
+$API_BASE = "http://192.168.1.94:8080";
 
 // ==========================================
 // Helper: เรียก API
@@ -70,8 +70,13 @@ function sendSMS($phone, $message) {
 // Action: ดึงข้อความทั้งหมด (polling)
 // ==========================================
 function getMessages($since = null) {
-    $query = $since ? "?since=" . urlencode($since) : "?limit=50";
-    return apiRequest("GET", "/messages" . $query);
+    $query = "?limit=50";
+
+    if ($since) {
+        $query .= "&from=" . urlencode($since);
+    }
+
+    return apiRequest("GET", "/inbox" . $query);
 }
 
 // ==========================================
@@ -216,7 +221,7 @@ function renderMsgs() {
 
   const filtered = phone
     ? messages.filter(m => {
-        const n = (m.phoneNumber || m.from || '').replace(/\s/g,'');
+       const n = (m.phoneNumber || '').replace(/\s/g,'');
         const p = phone.replace(/\s/g,'');
         return n === p || n.endsWith(p) || p.endsWith(n);
       })
@@ -228,12 +233,11 @@ function renderMsgs() {
   let html = '';
   filtered.forEach(m => {
     const out = m.dir === 'out';
-    const tick = out ? (m.status === 'Delivered' ? ' ✓✓' : m.status === 'Sent' ? ' ✓' : ' ⏳') : '';
     html += `<div class="brow ${out ? 'out' : 'in'}">
       <div class="bwrap">
         ${!out ? `<div class="from-label">${m.phoneNumber || m.from || ''}</div>` : ''}
-        <div class="bubble">${escHtml(m.message || m.text || '')}</div>
-        <div class="meta">${fmtTime(m.receivedAt || m.sentAt || m.createdAt)}${tick}</div>
+<div class="bubble">${escHtml(m.message || '')}</div>
+<div class="meta">${fmtTime(m.receivedAt || m.createdAt)}</div>
       </div>
     </div>`;
   });
@@ -261,14 +265,23 @@ async function fetchMessages() {
     if (!json.success) throw new Error('API error');
 
     setStatus(true, 'เชื่อมต่อแล้ว · Device: <?= htmlspecialchars(substr($DEVICE_ID,0,8)) ?>...');
-    const arr = Array.isArray(json.data) ? json.data : (json.data?.messages || json.data?.data || []);
-    arr.forEach(m => {
-      const id = m.id || m.messageId || (m.phoneNumber + m.receivedAt);
-      if (!messages.find(x => (x.id || x.messageId || (x.phoneNumber + x.receivedAt)) === id)) {
-        m.dir = (m.direction === 'outgoing' || m.type === 'outgoing') ? 'out' : 'in';
-        messages.push(m);
-      }
-    });
+    const arr = Array.isArray(json.data) ? json.data : [];
+arr.forEach(m => {
+    const id = m.id;
+
+    if (!messages.find(x => x.id === id)) {
+
+        const isIncoming = !!m.sender; // local inbox = sender มีค่า = ขาเข้า
+
+        messages.push({
+            id: id,
+            dir: isIncoming ? 'in' : 'out',
+            phoneNumber: m.sender || m.recipient || '',
+            message: m.contentPreview || '',
+            receivedAt: m.createdAt
+        });
+    }
+});
     messages.sort((a,b) => new Date(a.receivedAt||a.createdAt||0) - new Date(b.receivedAt||b.createdAt||0));
     lastSince = new Date().toISOString();
     renderMsgs();

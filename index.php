@@ -95,8 +95,6 @@ $url = "https://api.sms-gate.app/3rdparty/v1/inbox"
     . "?limit=20"
     . "&offset=0"
     . "&deviceId=" . $deviceId;
-    );
-
     curl_setopt_array($ch,[
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_HTTPHEADER => [

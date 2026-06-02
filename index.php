@@ -12,20 +12,36 @@ $API_BASE  = "https://sms-gate.app/3rdparty/v1";
 // ==========================================
 function apiRequest($method, $endpoint, $body = null) {
     global $TOKEN, $API_BASE;
+
     $ch = curl_init($API_BASE . $endpoint);
-    $headers = [
-        "Authorization: Bearer $TOKEN",
-        "Content-Type: application/json",
-        "Accept: application/json",
+
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => [
+            "Authorization: Bearer $TOKEN",
+            "Content-Type: application/json",
+            "Accept: application/json"
+        ],
+        CURLOPT_CUSTOMREQUEST => $method,
+        CURLOPT_TIMEOUT => 30
+    ]);
+
+    if ($body !== null) {
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
+    }
+
+    $response = curl_exec($ch);
+
+    $result = [
+        "code" => curl_getinfo($ch, CURLINFO_HTTP_CODE),
+        "error" => curl_error($ch),
+        "raw" => $response,
+        "data" => json_decode($response, true)
     ];
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
-    if ($body) curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
-    $res  = curl_exec($ch);
-    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
     curl_close($ch);
-    return ["code" => $code, "data" => json_decode($res, true)];
+
+    return $result;
 }
 
 // ==========================================
@@ -71,13 +87,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["action"])) {
             echo json_encode(["success" => false, "error" => "กรุณาระบุเบอร์และข้อความ"]);
             exit;
         }
-        $res = sendSMS($phone, $message);
-        echo json_encode([
-            "success" => $res["code"] >= 200 && $res["code"] < 300,
-            "data"    => $res["data"],
-            "code"    => $res["code"],
-        ]);
-        exit;
+$res = sendSMS($phone, $message);
+
+echo json_encode($res, JSON_PRETTY_PRINT);
+exit;
     }
 
     if ($_POST["action"] === "fetch") {

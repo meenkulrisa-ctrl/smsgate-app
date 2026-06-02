@@ -35,7 +35,10 @@ function sendSMS($phone, $message) {
     global $DEVICE_ID;
     $res = apiRequest("POST", "/message", [
         "deviceId"    => $DEVICE_ID,
-        "phoneNumber" => $phone,
+        $phone = preg_replace('/\D/', '', $phone);
+if (substr($phone,0,1) == '0') {
+    $phone = '+66' . substr($phone,1);
+}
         "message"     => $message,
     ]);
     return $res;

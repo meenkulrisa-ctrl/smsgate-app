@@ -366,8 +366,7 @@ function loadInbox(){
 fetch('?inbox=1')
 .then(async r => {
     const text = await r.text();
-    console.log("INBOX RAW:", data);
-      console.log("RAW RESPONSE TEXT:", text);
+    console.log("RAW:", text);
 
     try {
         return JSON.parse(text);
@@ -377,48 +376,41 @@ fetch('?inbox=1')
     }
 })
 .then(data => {
-    console.log("INBOX RAW:", data);
-if (!Array.isArray(data)) {
-    console.log("API error:", data?.message || data);
-    return;
-}
 
-    let rows = data;
+    console.log("INBOX DATA:", data);
+
+    if (!data) return;
+
+    if (!Array.isArray(data)) {
+        console.log("API error:", data);
+        return;
+    }
 
     let html = `
         <div class="card mt-4">
         <div class="card-header bg-dark text-white">
-        Inbox / Messages
+        Inbox
         </div>
         <div class="card-body">
     `;
 
-rows.forEach(row => {
+    data.forEach(row => {
 
-    let msg =
-        row.contentPreview ||
-        row.message ||
-        row.text ||
-        (row.textMessage && row.textMessage.text) ||
-        '-';
+        let msg = row.contentPreview
+            || (row.textMessage ? row.textMessage.text : '')
+            || '';
 
-    let from = row.sender || row.from || '-';
-    let date = row.createdAt || row.receivedAt || '-';
-
-    html += `
-        <div class="border rounded p-2 mb-2">
-            <b>From:</b> ${from}<br>
-            <b>Date:</b> ${date}<br>
-            <b>Message:</b><br>
-            ${msg}
-        </div>
-    `;
-});
+        html += `
+            <div class="border p-2 mb-2">
+                <b>From:</b> ${row.sender || '-'}<br>
+                <b>Message:</b> ${msg}
+            </div>
+        `;
+    });
 
     html += `</div></div>`;
     document.getElementById('inbox').innerHTML = html;
-})
-    .catch(err => console.log(err));
+});
 }
 
 loadInbox();

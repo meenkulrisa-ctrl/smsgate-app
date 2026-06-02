@@ -67,8 +67,8 @@ if(isset($_GET['inbox'])){
         CURLOPT_POSTFIELDS => json_encode([
             'scopes'=>[
                 "devices:list",
-"inbox:list"
-"messages:read" // ✔ สำคัญ
+                "inbox:list",
+                "messages:read" // ✔ สำคัญ
             ],
             'ttl' => 3600
         ])

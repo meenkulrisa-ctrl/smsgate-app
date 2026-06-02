@@ -64,13 +64,16 @@ if(isset($_GET['inbox'])){
             'Accept: application/json',
             'Content-Type: application/json'
         ],
-        CURLOPT_POSTFIELDS => json_encode([
-            'scopes'=>[
-                'devices:list',
-                'messages:read'
-            ],
-            'ttl' => 3600
-        ])
+CURLOPT_POSTFIELDS => json_encode([
+    'scopes' => [
+        'devices:list',
+        'messages:read',
+        'messages:write',
+        'messages:send',
+        'inbox:list'
+    ],
+    'ttl' => 3600
+])
     ]);
 
     $tokenData = json_decode(curl_exec($ch), true);

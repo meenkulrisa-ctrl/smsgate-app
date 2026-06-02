@@ -9,7 +9,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // SMSGate Credentials
     $username = 'JTFBNP';
-    $password = 'YOUR_PASSWORD';
+    $password = 'cle1dbdoccuv0i';
     $deviceId = 'U-ucDm6OQfO6FlCytxNIE';
 
     // =========================

@@ -1,7 +1,7 @@
 <?php
 
 $username = 'JTFBNP';
-$password = 'YOUR_PASSWORD';
+$password = 'cle1dbdoccuv0i';
 
 /* STEP 1: ขอ Token */
 $ch = curl_init('https://api.sms-gate.app/3rdparty/v1/auth/token');

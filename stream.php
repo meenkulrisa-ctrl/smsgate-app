@@ -1,8 +1,21 @@
 <?php
-header('Content-Type: text/event-stream');
-header('Cache-Control: no-cache');
-header('Connection: keep-alive');
+header("Content-Type: text/event-stream");
+header("Cache-Control: no-cache");
+header("Connection: keep-alive");
 
+while (true) {
+
+    $data = [
+        "textMessage" => ["text" => "test"],
+        "state" => "live"
+    ];
+
+    echo "data: " . json_encode($data) . "\n\n";
+    ob_flush();
+    flush();
+
+    sleep(3);
+}
 $username = 'JTFBNP';
 $password = 'cle1dbdoccuv0i';
 $deviceId = 'U-ucDm6OQfO6FlCytxNIE';

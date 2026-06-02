@@ -65,11 +65,13 @@ if(isset($_GET['inbox'])){
             'Content-Type: application/json'
         ],
         CURLOPT_POSTFIELDS => json_encode([
-            'scopes'=>[
-                "devices:list",
-                "inbox:list",
-                "messages:read" // ✔ สำคัญ
-            ],
+'scopes'=>[
+    'devices:list',
+    'messages:read',
+    'messages:write',
+    'messages:send',
+    'messages:list'   // ⭐ เพิ่มตัวนี้
+],
             'ttl' => 3600
         ])
     ]);

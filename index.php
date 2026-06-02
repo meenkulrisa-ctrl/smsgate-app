@@ -407,27 +407,25 @@ htmlspecialchars($response).
 <script>
 function startStream() {
 
-const es = new EventSource("stream.php");
+    const es = new EventSource("stream.php");
 
-es.onmessage = function(event) {
+    es.onmessage = function(event) {
 
-    const msg = JSON.parse(event.data);
+        const msg = JSON.parse(event.data);
 
-    const html = `
-        <div class="border p-2 mb-2">
-            <b>From:</b> ${msg.sender || '-'}<br>
-            <b>Message:</b> ${msg.textMessage?.text || ''}
-        </div>
-    `;
+        const html = `
+            <div class="border p-2 mb-2">
+                <b>From:</b> ${msg.recipients?.[0]?.phoneNumber || '-'}<br>
+                <b>Message:</b> ${msg.textMessage?.text || ''}
+            </div>
+        `;
 
-    document.getElementById("inbox").innerHTML =
-        html + document.getElementById("inbox").innerHTML;
-};
-
+        document.getElementById("inbox").innerHTML =
+            html + document.getElementById("inbox").innerHTML;
+    };
 }
 
 startStream();
-
 </script>
 
 </html>

@@ -6,7 +6,7 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 $TOKEN     = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzbXMtZ2F0ZS5hcHAiLCJzdWIiOiJKVEZCTlAiLCJleHAiOjE3ODA0Mjc3NzIsImlhdCI6MTc4MDQyNjg3MiwianRpIjoibmJNYTFtQXh0V0xHNi1mU2RvY0twIiwidXNlcl9pZCI6IkpURkJOUCIsInNjb3BlcyI6WyJkZXZpY2VzOmxpc3QiLCJtZXNzYWdlczpyZWFkIiwibWVzc2FnZXM6d3JpdGUiLCJtZXNzYWdlczpzZW5kIiwibWVzc2FnZXM6bGlzdCJdfQ.j2r-eBtNf-BJTquS59rMGPhjHHuN2s0tm4UorJ0svYU";
 $DEVICE_ID = "U-ucDm6OQfO6FlCytxNIE";
-$API_BASE  = "https://sms-gate.app/3rdparty/v1";
+$API_BASE = "https://api.sms-gate.app/3rdparty/v1";
 
 // ==========================================
 // Helper: เรียก API
@@ -49,7 +49,9 @@ function apiRequest($method, $endpoint, $body = null) {
 // Action: ส่ง SMS
 // ==========================================
 function sendSMS($phone, $message) {
-    // แปลงเบอร์เป็นรูปแบบ +66xxxxxxxxx
+    global $DEVICE_ID;
+
+    // แปลงเบอร์เป็น +66xxxxxxxxx
     $phone = preg_replace('/\D/', '', $phone);
 
     if (substr($phone, 0, 1) === '0') {
@@ -58,13 +60,12 @@ function sendSMS($phone, $message) {
         $phone = '+' . $phone;
     }
 
-    return apiRequest("POST", "/message", [
-        "deviceId"    => $DEVICE_ID,
-        "phoneNumber" => $phone,
-        "message"     => $message,
+    return apiRequest("POST", "/messages", [
+        "deviceId" => $DEVICE_ID,
+        "message" => $message,
+        "phoneNumbers" => [$phone]
     ]);
 }
-
 // ==========================================
 // Action: ดึงข้อความทั้งหมด (polling)
 // ==========================================
@@ -88,7 +89,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["action"])) {
         }
 $res = sendSMS($phone, $message);
 
-echo json_encode($res, JSON_PRETTY_PRINT);
+echo json_encode([
+    "success" => ($res["code"] >= 200 && $res["code"] < 300),
+    "code"    => $res["code"],
+    "data"    => $res["data"],
+    "raw"     => $res["raw"]
+]);
+
 exit;
     }
 
@@ -286,8 +293,17 @@ async function sendSMS() {
 
   try {
     const res  = await fetch('', { method: 'POST', body: form });
-    const json = await res.json();
-    if (!json.success) throw new Error(json.data?.message || json.data?.error || 'ส่งไม่สำเร็จ');
+const json = await res.json();
+
+console.log(json);
+
+if (!json.success) {
+    throw new Error(
+        json.data?.message ||
+        json.raw ||
+        'ส่งไม่สำเร็จ'
+    );
+}
 
     messages.push({ id: json.data?.id || Date.now(), phoneNumber: phone, message: text, dir: 'out', status: 'Sent', sentAt: new Date().toISOString() });
     document.getElementById('msgInput').value = '';

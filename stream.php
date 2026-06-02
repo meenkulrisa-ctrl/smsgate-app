@@ -19,16 +19,13 @@ curl_setopt_array($ch, [
         'Accept: application/json',
         'Content-Type: application/json'
     ],
-'POSTFIELDS' => json_encode([
-    'scopes' => [
-        'devices:list',
-        'messages:read',
-        'messages:write',
-        'messages:send',
-        'messages:list'
-    ],
-    'ttl' => 3600
-])
+    CURLOPT_POSTFIELDS => json_encode([
+        'scopes' => [
+            'messages:read',
+            'messages:list'
+        ],
+        'ttl' => 3600
+    ])
 ]);
 
 $tokenData = json_decode(curl_exec($ch), true);

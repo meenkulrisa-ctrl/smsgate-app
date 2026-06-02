@@ -65,13 +65,16 @@ if(isset($_GET['inbox'])){
             'Accept: application/json',
             'Content-Type: application/json'
         ],
-        CURLOPT_POSTFIELDS => json_encode([
-'scopes'=>[
-    'messages:read',
-    'inbox:read'
-   ],
-            'ttl'=>3600
-        ])
+CURLOPT_POSTFIELDS => json_encode([
+    'scopes'=>[
+        'devices:list',
+        'messages:read',
+        'messages:write',
+        'messages:send',
+        'inbox:list'
+    ],
+    'ttl'=>3600
+])
     ]);
 
     $tokenData = json_decode(curl_exec($ch),true);
@@ -351,6 +354,11 @@ function loadInbox(){
     fetch('?inbox=1')
     .then(r=>r.json())
     .then(data=>{
+            console.log(data);
+
+    let rows = data.items || data;
+
+});
 
         let html='';
 

@@ -29,15 +29,15 @@ function checkStatus($token,$messageId){
 
 function getInbox($token,$deviceId){
 
-    $url =
-    "https://api.sms-gate.app/3rdparty/v1/messages?limit=20&deviceId=".$deviceId."&includeContent=true";
+    $url = "https://api.sms-gate.app/3rdparty/v1/inbox?limit=20&offset=0&deviceId=".$deviceId;
 
     $ch = curl_init($url);
 
     curl_setopt_array($ch,[
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_HTTPHEADER => [
-            "Authorization: Bearer ".$token
+            "Authorization: Bearer ".$token,
+            "Accept: application/json"
         ]
     ]);
 
@@ -64,16 +64,14 @@ if(isset($_GET['inbox'])){
             'Accept: application/json',
             'Content-Type: application/json'
         ],
-CURLOPT_POSTFIELDS => json_encode([
-    'scopes' => [
-        'devices:list',
-        'messages:read',
-        'messages:write',
-        'messages:send',
-        'inbox:list'
-    ],
-    'ttl' => 3600
-])
+        CURLOPT_POSTFIELDS => json_encode([
+            'scopes'=>[
+                'devices:list',
+                'messages:read',
+                'inbox:list'   // ✔ สำคัญ
+            ],
+            'ttl' => 3600
+        ])
     ]);
 
     $tokenData = json_decode(curl_exec($ch), true);
@@ -81,24 +79,34 @@ CURLOPT_POSTFIELDS => json_encode([
 
     $token = $tokenData['access_token'] ?? '';
 
+    if(!$token){
+        header('Content-Type: application/json');
+        echo json_encode([
+            "error" => "no token",
+            "raw" => $tokenData
+        ]);
+        exit;
+    }
+
     $ch = curl_init(
-        'https://api.sms-gate.app/3rdparty/v1/inbox?limit=20&deviceId='.$deviceId
+        'https://api.sms-gate.app/3rdparty/v1/inbox?limit=20&offset=0&deviceId='.$deviceId
     );
 
     curl_setopt_array($ch,[
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_HTTPHEADER => [
-            'Authorization: Bearer '.$token
+            'Authorization: Bearer '.$token,
+            'Accept: application/json'
         ]
     ]);
 
-    header('Content-Type: application/json');
-    echo curl_exec($ch);
-
+    $res = curl_exec($ch);
     curl_close($ch);
+
+    header('Content-Type: application/json');
+    echo $res;
     exit;
 }
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $phone = trim($_POST['phone']);
@@ -352,9 +360,12 @@ function loadInbox(){
 
         console.log(data);
 
-        let rows = Array.isArray(data)
-            ? data
-            : (data.items || []);
+        if (!Array.isArray(data)) {
+            console.log("API error:", data);
+            return;
+        }
+
+        let rows = data;
 
         let html = `
         <div class="card mt-4">
@@ -384,9 +395,7 @@ function loadInbox(){
 
         document.getElementById('inbox').innerHTML = html;
     })
-    .catch(err => {
-        console.log(err);
-    });
+    .catch(err => console.log(err));
 }
 
 loadInbox();

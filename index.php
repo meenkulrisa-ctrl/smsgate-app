@@ -405,76 +405,29 @@ htmlspecialchars($response).
 </div>
 
 <script>
-function loadInbox(){
-document.getElementById('inbox').innerHTML =
-`<div class="text-muted p-2">กำลังโหลดข้อความ...</div>`;
-
-fetch('?inbox=1')
-.then(async r => {
-    const text = await r.text();
-    console.log("RAW:", text);
-
-    try {
-        return JSON.parse(text);
-    } catch (e) {
-        console.log("Not JSON:", text);
-        return null;
-    }
-})
-.then(data => {
-
-    console.log("INBOX DATA:", data);
-
-    if (!data) return;
-
-    if (!Array.isArray(data)) {
-        console.log("API error:", data);
-        return;
-    }
-
-    let html = `
-        <div class="card mt-4">
-        <div class="card-header bg-dark text-white">
-        Inbox
-        </div>
-        <div class="card-body">
-    `;
-
-data.forEach(row => {
-
-    let msg =
-        row.contentPreview ||
-        row.textMessage?.text ||
-        row.text ||
-        '';
-
-    let from =
-        row.sender ||
-        row.from ||
-        row.recipients?.[0]?.phoneNumber ||
-        'unknown';
-
-    html += `
-        <div class="border p-2 mb-2">
-            <b>From:</b> ${from}<br>
-            <b>Message:</b> ${msg}
-        </div>
-    `;
-});
+function startStream() {
 
 const es = new EventSource("stream.php");
 
 es.onmessage = function(event) {
+
     const msg = JSON.parse(event.data);
 
-    console.log(msg);
-
-    document.getElementById("inbox").innerHTML =
-        `<div class="border p-2 mb-2">
+    const html = `
+        <div class="border p-2 mb-2">
             <b>From:</b> ${msg.sender || '-'}<br>
             <b>Message:</b> ${msg.textMessage?.text || ''}
-        </div>` + document.getElementById("inbox").innerHTML;
+        </div>
+    `;
+
+    document.getElementById("inbox").innerHTML =
+        html + document.getElementById("inbox").innerHTML;
 };
+
+}
+
+startStream();
+
 </script>
 
 </html>

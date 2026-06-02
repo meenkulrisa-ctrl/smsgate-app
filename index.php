@@ -30,7 +30,7 @@ function checkStatus($token,$messageId){
 function getInbox($token, $deviceId){
 
     $url = "https://api.sms-gate.app/3rdparty/v1/messages"
-        . "?limit=20"
+        . "?limit=50"
         . "&offset=0"
         . "&deviceId=" . $deviceId;
 
@@ -49,20 +49,49 @@ function getInbox($token, $deviceId){
 
     $data = json_decode($res, true);
 
-    if (!is_array($data)) return [];
+    if(!is_array($data)) return [];
 
-    // 🔥 FIX: inbox filter ที่ถูกต้องจริง
     return array_values(array_filter($data, function($msg){
 
-        $phone = $msg['recipients'][0]['phoneNumber'] ?? '';
+        // ✅ inbox จริง = มี sender และไม่ใช่ข้อความที่คุณส่ง
+        $isIncoming = isset($msg['sender']) || isset($msg['from']);
 
-        // ❗ inbound มักจะ:
-        // - ไม่มี +66 แบบ normalized
-        // - หรือ state = Delivered แต่ "ไม่ใช่ message ที่คุณส่ง"
+        $sentByYou = $msg['textMessage']['sentByYou'] ?? false;
 
-        $isOutbound = str_starts_with($phone, '+66');
+        return $isIncoming && !$sentByYou;
+    }));
+}
+function getOutbox($token, $deviceId){
 
-        return !$isOutbound; // 👈 สำคัญที่สุด
+    $url = "https://api.sms-gate.app/3rdparty/v1/messages"
+        . "?limit=50"
+        . "&offset=0"
+        . "&deviceId=" . $deviceId;
+
+    $ch = curl_init($url);
+
+    curl_setopt_array($ch,[
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => [
+            "Authorization: Bearer ".$token,
+            "Accept: application/json"
+        ]
+    ]);
+
+    $res = curl_exec($ch);
+    curl_close($ch);
+
+    $data = json_decode($res, true);
+
+    if(!is_array($data)) return [];
+
+    return array_values(array_filter($data, function($msg){
+
+        $sentByYou = $msg['textMessage']['sentByYou'] ?? false;
+
+        $hasRecipient = !empty($msg['recipients'][0]['phoneNumber']);
+
+        return $sentByYou || $hasRecipient;
     }));
 }
 

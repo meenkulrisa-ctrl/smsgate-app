@@ -4,14 +4,18 @@ $result = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $phone = $_POST['phone'];
-    $message = $_POST['message'];
+    $phone = trim($_POST['phone']);
+    $message = trim($_POST['message']);
 
+    // SMSGate Credentials
     $username = 'JTFBNP';
-    $password = 'cle1dbdoccuv0i';
+    $password = 'YOUR_PASSWORD';
     $deviceId = 'U-ucDm6OQfO6FlCytxNIE';
 
-    // Get Token
+    // =========================
+    // STEP 1 : GET TOKEN
+    // =========================
+
     $ch = curl_init('https://api.sms-gate.app/3rdparty/v1/auth/token');
 
     curl_setopt_array($ch, [
@@ -24,90 +28,176 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'Content-Type: application/json'
         ],
         CURLOPT_POSTFIELDS => json_encode([
-            'scopes' => ['messages:write'],
+            'scopes' => [
+                'devices:list',
+                'messages:read',
+                'messages:write'
+            ],
             'ttl' => 3600
         ])
     ]);
 
-    $tokenData = json_decode(curl_exec($ch), true);
+    $tokenResponse = curl_exec($ch);
+    $tokenCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
     curl_close($ch);
 
-    $token = $tokenData['access_token'];
+    $tokenData = json_decode($tokenResponse, true);
 
-    // Send SMS
-    $ch = curl_init('https://api.sms-gate.app/3rdparty/v1/messages');
+    if (!isset($tokenData['access_token'])) {
 
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_POST => true,
-        CURLOPT_HTTPHEADER => [
-            'Accept: application/json',
-            'Content-Type: application/json',
-            'Authorization: Bearer ' . $token
-        ],
-        CURLOPT_POSTFIELDS => json_encode([
+        $result = '
+        <div class="alert alert-danger">
+            <h5>Token Error</h5>
+            <strong>HTTP CODE:</strong> ' . $tokenCode . '
+            <hr>
+            <pre>' . htmlspecialchars($tokenResponse) . '</pre>
+        </div>';
+
+    } else {
+
+        $token = $tokenData['access_token'];
+
+        // =========================
+        // STEP 2 : SEND SMS
+        // =========================
+
+        $payload = [
             'deviceId' => $deviceId,
             'phoneNumbers' => [$phone],
             'textMessage' => [
                 'text' => $message
             ],
             'simNumber' => 1
-        ])
-    ]);
+        ];
 
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $ch = curl_init('https://api.sms-gate.app/3rdparty/v1/messages');
 
-    curl_close($ch);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_HTTPHEADER => [
+                'Accept: application/json',
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $token
+            ],
+            CURLOPT_POSTFIELDS => json_encode($payload)
+        ]);
 
-    $result = "HTTP CODE: {$httpCode}<br><pre>{$response}</pre>";
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        curl_close($ch);
+
+        $result = '
+        <div class="alert alert-info">
+            <h5>SMS Result</h5>
+
+            <p>
+                <strong>HTTP CODE:</strong> ' . $httpCode . '
+            </p>
+
+            <hr>
+
+            <strong>Payload:</strong>
+            <pre>' . htmlspecialchars(json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)) . '</pre>
+
+            <strong>Response:</strong>
+            <pre>' . htmlspecialchars($response) . '</pre>
+        </div>';
+    }
 }
+
 ?>
 
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="th">
+
 <head>
-<meta charset="utf-8">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
 <title>SMS Gateway</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
 </head>
+
 <body class="bg-light">
 
-<div class="container mt-5">
+<div class="container py-5">
 
-<div class="card shadow">
-<div class="card-body">
+    <div class="row justify-content-center">
 
-<h3>Send SMS</h3>
+        <div class="col-md-8">
 
-<form method="post">
+            <div class="card shadow-lg border-0">
 
-<div class="mb-3">
-<label>Phone Number</label>
-<input type="text" name="phone" class="form-control" placeholder="0812345678" required>
-</div>
+                <div class="card-header bg-primary text-white text-center">
 
-<div class="mb-3">
-<label>Message</label>
-<textarea name="message" class="form-control" rows="4" required></textarea>
-</div>
+                    <h3 class="mb-0">
+                        SMS Gateway
+                    </h3>
 
-<button class="btn btn-primary">
-Send SMS
-</button>
+                </div>
 
-</form>
+                <div class="card-body p-4">
 
-<hr>
+                    <form method="POST">
 
-<?= $result ?>
+                        <div class="mb-3">
 
-</div>
-</div>
+                            <label class="form-label">
+                                Phone Number
+                            </label>
+
+                            <input
+                                type="text"
+                                name="phone"
+                                class="form-control"
+                                placeholder="0812345678"
+                                required>
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Message
+                            </label>
+
+                            <textarea
+                                name="message"
+                                rows="5"
+                                class="form-control"
+                                placeholder="พิมพ์ข้อความที่ต้องการส่ง..."
+                                required></textarea>
+
+                        </div>
+
+                        <button class="btn btn-success w-100">
+
+                            Send SMS
+
+                        </button>
+
+                    </form>
+
+                    <hr>
+
+                    <?= $result ?>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
 
 </div>
 
 </body>
+
 </html>

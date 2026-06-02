@@ -58,7 +58,7 @@ if (
         exit;
     }
 
-    $error = 'Login Failed';
+    $error = '<pre>' . htmlspecialchars(json_encode($response, JSON_PRETTY_PRINT)) . '</pre>';
 }
 
 /*

@@ -362,6 +362,8 @@ function loadInbox(){
 fetch('?inbox=1')
 .then(async r => {
     const text = await r.text();
+    console.log("INBOX RAW:", data);
+      console.log("RAW RESPONSE TEXT:", text);
 
     try {
         return JSON.parse(text);
@@ -371,7 +373,7 @@ fetch('?inbox=1')
     }
 })
 .then(data => {
-
+    console.log("INBOX RAW:", data);
 if (!Array.isArray(data)) {
     console.log("API error:", data?.message || data);
     return;
@@ -387,21 +389,27 @@ if (!Array.isArray(data)) {
         <div class="card-body">
     `;
 
-    rows.forEach(row => {
+rows.forEach(row => {
 
-        let msg = row.contentPreview
-            || (row.textMessage ? row.textMessage.text : '')
-            || '';
+    let msg =
+        row.contentPreview ||
+        row.message ||
+        row.text ||
+        (row.textMessage && row.textMessage.text) ||
+        '-';
 
-        html += `
-            <div class="border rounded p-2 mb-2">
-                <b>From:</b> ${row.sender || '-'}<br>
-                <b>Date:</b> ${row.createdAt || '-'}<br>
-                <b>Message:</b><br>
-                ${msg}
-            </div>
-        `;
-    });
+    let from = row.sender || row.from || '-';
+    let date = row.createdAt || row.receivedAt || '-';
+
+    html += `
+        <div class="border rounded p-2 mb-2">
+            <b>From:</b> ${from}<br>
+            <b>Date:</b> ${date}<br>
+            <b>Message:</b><br>
+            ${msg}
+        </div>
+    `;
+});
 
     html += `</div></div>`;
     document.getElementById('inbox').innerHTML = html;

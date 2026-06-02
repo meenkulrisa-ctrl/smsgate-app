@@ -4,7 +4,7 @@
 // ==========================================
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
-$TOKEN     = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzbXMtZ2F0ZS5hcHAiLCJzdWIiOiJKVEZCTlAiLCJleHAiOjE3ODA0MzQzMzUsImlhdCI6MTc4MDQzMzQzNSwianRpIjoiQUpxOTE1Zm14MVRTRDVmQTVhYzVIIiwidXNlcl9pZCI6IkpURkJOUCIsInNjb3BlcyI6WyJkZXZpY2VzOmxpc3QiLCJtZXNzYWdlczpsaXN0IiwibWVzc2FnZXM6cmVhZCIsIm1lc3NhZ2VzOndyaXRlIiwibWVzc2FnZXM6c2VuZCJdfQ.MJ3iCVkyDSP7hz7S_y5UwOQdKKOQotNjWEgp9NJ3yB8";
+$TOKEN     = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzbXMtZ2F0ZS5hcHAiLCJzdWIiOiJKVEZCTlAiLCJleHAiOjE3ODA0MzU3MTYsImlhdCI6MTc4MDQzNDgxNiwianRpIjoiNjJva2F0R2NjdktpYzNzODdLVFFoIiwidXNlcl9pZCI6IkpURkJOUCIsInNjb3BlcyI6WyJkZXZpY2VzOmxpc3QiLCJtZXNzYWdlczpsaXN0IiwibWVzc2FnZXM6cmVhZCIsIm1lc3NhZ2VzOndyaXRlIiwibWVzc2FnZXM6c2VuZCJdfQ.OSsflbYhVtYaATGULTvj6w4k9qpPMPsWmbe5r6_kkcY";
 $DEVICE_ID = "U-ucDm6OQfO6FlCytxNIE";
 $API_BASE = "https://api.sms-gate.app/3rdparty/v1";
 

@@ -28,11 +28,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'Content-Type: application/json'
         ],
         CURLOPT_POSTFIELDS => json_encode([
-            'scopes' => [
-                'devices:list',
-                'messages:read',
-                'messages:write'
-            ],
+'scopes' => [
+    'devices:list',
+    'messages:read',
+    'messages:write',
+    'messages:send'
+],
             'ttl' => 3600
         ])
     ]);

@@ -29,7 +29,7 @@ function checkStatus($token,$messageId){
 
 function getInbox($token,$deviceId){
 
-$url = "https://api.sms-gate.app/3rdparty/v1/messages?limit=20&deviceId=".$deviceId."&includeContent=true";
+$url = "https://api.sms-gate.app/3rdparty/v1/messages?limit=20&offset=0&deviceId=".$deviceId."&includeContent=true";
 
     $ch = curl_init($url);
 
@@ -66,9 +66,9 @@ if(isset($_GET['inbox'])){
         ],
         CURLOPT_POSTFIELDS => json_encode([
             'scopes'=>[
-                'devices:list',
-                'messages:read',
-                'inbox:list'   // ✔ สำคัญ
+                "devices:list",
+"inbox:list"
+"messages:read" // ✔ สำคัญ
             ],
             'ttl' => 3600
         ])
@@ -89,7 +89,7 @@ if(isset($_GET['inbox'])){
     }
 
     $ch = curl_init(
-        'https://api.sms-gate.app/3rdparty/v1/inbox?limit=20&offset=0&deviceId='.$deviceId
+        'https://api.sms-gate.app/3rdparty/v1/messages?includeContent=true?limit=20&offset=0&deviceId='.$deviceId
     );
 
     curl_setopt_array($ch,[
@@ -354,11 +354,18 @@ htmlspecialchars($response).
 <script>
 function loadInbox(){
 
-    fetch('?inbox=1')
-    .then(r => r.json())
-.then(data => {
+fetch('?inbox=1')
+.then(async r => {
+    const text = await r.text();
 
-    console.log(data);
+    try {
+        return JSON.parse(text);
+    } catch (e) {
+        console.log("Not JSON:", text);
+        return null;
+    }
+})
+.then(data => {
 
     if (!Array.isArray(data)) {
         console.log("API error:", data);

@@ -2,7 +2,8 @@
 header("Content-Type: text/event-stream");
 header("Cache-Control: no-cache");
 header("Connection: keep-alive");
-
+@ini_set('output_buffering', 'off');
+@ini_set('zlib.output_compression', false);
 $username = 'JTFBNP';
 $password = 'cle1dbdoccuv0i';
 $deviceId = 'U-ucDm6OQfO6FlCytxNIE';
@@ -54,38 +55,32 @@ while (true) {
     curl_close($ch);
 
     $data = json_decode($res, true);
-echo "data: " . json_encode($data) . "\n\n";
-flush();
-exit;
+
     if (!is_array($data)) {
         sleep(3);
         continue;
     }
 
-foreach ($data as $msg) {
+    foreach ($data as $msg) {
 
-    // รับเฉพาะข้อความเข้า
-if (!empty($msg['textMessage']['sentByYou'])) {
-    continue;
-}
-
-    $id = $msg['id'] ?? '';
-
-    if (!$id) {
-        continue;
-    }
-
-    // ถ้าเคยส่งไปแล้ว ข้าม
-    if (in_array($id, $sentIds)) {
-        continue;
-    }
-
-    $sentIds[] = $id;
-
-    echo "data: " . json_encode($msg) . "\n\n";
-
-    flush();
+        // ❌ ข้ามข้อความที่คุณส่งเอง
+        if (!empty($msg['textMessage']['sentByYou'])) {
+            continue;
         }
+
+        $id = $msg['id'] ?? null;
+
+        if (!$id) continue;
+
+        if (in_array($id, $sentIds)) continue;
+
+        $sentIds[] = $id;
+
+        echo "data: " . json_encode($msg) . "\n\n";
+
+        @ob_flush();
+        @flush();
+    }
 
     sleep(3);
 }

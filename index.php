@@ -72,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'simNumber' => 2
         ];
 
-        $ch = curl_init('https://api.sms-gate.app/3rdparty/v1/messages');
+        $ch = curl_init('https://api.sms-gate.app/3rdparty/v1/messages?skipPhoneValidation=true');
 
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,

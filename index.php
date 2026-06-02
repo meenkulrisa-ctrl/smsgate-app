@@ -462,10 +462,19 @@ data.forEach(row => {
     `;
 });
 
-loadInbox();
-setInterval(() => {
-    loadInbox();
-}, 3000);
+const es = new EventSource("stream.php");
+
+es.onmessage = function(event) {
+    const msg = JSON.parse(event.data);
+
+    console.log(msg);
+
+    document.getElementById("inbox").innerHTML =
+        `<div class="border p-2 mb-2">
+            <b>From:</b> ${msg.sender || '-'}<br>
+            <b>Message:</b> ${msg.textMessage?.text || ''}
+        </div>` + document.getElementById("inbox").innerHTML;
+};
 </script>
 
 </html>

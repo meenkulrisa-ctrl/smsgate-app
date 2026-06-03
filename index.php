@@ -129,12 +129,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["action"])) {
 
     // ── ส่ง SMS ──────────────────────────────────────────────
     if ($_POST["action"] === "send") {
-        $phone   = trim($_POST["phone"] ?? "");
-        $message = trim($_POST["message"] ?? "");
-        if (!$phone || !$message) {
+        $phoneRaw = trim($_POST["phone"] ?? "");
+        $message  = trim($_POST["message"] ?? "");
+        if (!$phoneRaw || !$message) {
             echo json_encode(["success" => false, "error" => "กรุณาระบุเบอร์และข้อความ"]);
             exit;
         }
+        // normalize: 08x -> +668x, 668x -> +668x
+        $phone = preg_replace('/[\s\-()]/', '', $phoneRaw);
+        if (preg_match('/^0(\d{9})$/', $phone, $m))  $phone = '+66' . $m[1];
+        elseif (preg_match('/^66(\d{9})$/', $phone, $m)) $phone = '+66' . $m[1];
         $res = apiRequest("POST", "/messages", [
             "deviceId"    => $GLOBALS["DEVICE_ID"],
             "phoneNumbers" => [$phone],

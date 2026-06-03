@@ -468,7 +468,7 @@ function renderMsgs() {
 
 // ── Fetch messages ────────────────────────────────────────
 async function fetchMessages() {
-  const phone = document.getElementById('toInput').value.trim();
+  const phone = normalizePhone(document.getElementById('toInput').value.trim());
   const fd    = new FormData();
   fd.append('action','fetch');
   if (phone) fd.append('phone', phone);

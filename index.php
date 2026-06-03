@@ -65,23 +65,33 @@ function writeJson($file, $data) {
 // POST ?webhook=1
 // ============================================================
 if (isset($_GET["webhook"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
+    $DATA_DIR   = getenv("RENDER") ? "/var/www/html/data" : __DIR__;
+    $INBOX_FILE = $DATA_DIR . "/sms_inbox.json";
+    $DEBUG_FILE = $DATA_DIR . "/webhook_debug.json";
+
     $raw  = file_get_contents("php://input");
     $data = json_decode($raw, true);
 
-    // sms-gate ส่ง payload แบบ: { "event": "sms:received", "payload": { ... } }
-    if ($data) {
-        $event   = $data["event"] ?? "";
-        $payload = $data["payload"] ?? $data;
+    // บันทึก raw payload ล่าสุด 20 รายการ
+    $debugLog   = readJson($DEBUG_FILE);
+    $debugLog[] = ["time" => date("c"), "raw" => $raw, "parsed" => $data];
+    if (count($debugLog) > 20) $debugLog = array_slice($debugLog, -20);
+    writeJson($DEBUG_FILE, $debugLog);
 
-        if ($event === "sms:received" || isset($payload["sender"])) {
-            // เก็บลง inbox file
-            $INBOX_FILE = (getenv("RENDER") ? "/var/www/html/data" : __DIR__) . "/sms_inbox.json";
+    if ($data) {
+        // รองรับทุก format: { event, payload:{} } หรือ flat {}
+        $payload = $data["payload"] ?? $data;
+        $from    = $payload["phoneNumber"] ?? $payload["sender"] ?? $payload["from"] ?? "";
+        $message = $payload["message"]     ?? $payload["text"]   ?? $payload["body"]
+                ?? $payload["content"]    ?? $payload["contentPreview"] ?? "";
+
+        if ($from && $message) {
             $inbox = readJson($INBOX_FILE);
-            $msg = [
+            $msg   = [
                 "id"         => $payload["id"] ?? uniqid("in_"),
-                "from"       => $payload["phoneNumber"] ?? $payload["sender"] ?? "",
-                "message"    => $payload["message"] ?? $payload["text"] ?? $payload["contentPreview"] ?? "",
-                "receivedAt" => $payload["receivedAt"] ?? $payload["createdAt"] ?? date("c"),
+                "from"       => $from,
+                "message"    => $message,
+                "receivedAt" => $payload["receivedAt"] ?? $payload["createdAt"] ?? $payload["date"] ?? date("c"),
                 "dir"        => "in",
             ];
             $ids = array_column($inbox, "id");
@@ -95,6 +105,17 @@ if (isset($_GET["webhook"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
     http_response_code(200);
     header("Content-Type: application/json");
     echo json_encode(["ok" => true]);
+    exit;
+}
+
+// ============================================================
+// DEBUG — ดู webhook payload ดิบ: GET ?debug=1
+// ============================================================
+if (isset($_GET["debug"]) && $_SERVER["REQUEST_METHOD"] === "GET") {
+    $DATA_DIR   = getenv("RENDER") ? "/var/www/html/data" : __DIR__;
+    $DEBUG_FILE = $DATA_DIR . "/webhook_debug.json";
+    header("Content-Type: application/json; charset=utf-8");
+    echo file_exists($DEBUG_FILE) ? file_get_contents($DEBUG_FILE) : "[]";
     exit;
 }
 

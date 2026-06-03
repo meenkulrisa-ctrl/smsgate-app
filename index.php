@@ -202,8 +202,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["action"])) {
 
     // ── ลงทะเบียน webhook ──────────────────────────────────
     if ($_POST["action"] === "register_webhook") {
-        $selfUrl = (isset($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] !== "off" ? "https" : "http")
-                 . "://" . $_SERVER["HTTP_HOST"] . $_SERVER["PHP_SELF"];
+        $proto   = $_SERVER["HTTP_X_FORWARDED_PROTO"] ?? ($_SERVER["HTTPS"] ?? "http");
+        $scheme  = ($proto === "https" || $proto === "on") ? "https" : "https"; // force https on Render
+        $selfUrl = $scheme . "://" . $_SERVER["HTTP_HOST"] . $_SERVER["PHP_SELF"];
         $res = apiRequest("POST", "/webhooks", [
             "deviceId" => $GLOBALS["DEVICE_ID"],
             "event"    => "sms:received",
@@ -232,8 +233,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["action"])) {
 // ============================================================
 // หน้า HTML
 // ============================================================
-$selfUrl = (isset($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] !== "off" ? "https" : "http")
-         . "://" . $_SERVER["HTTP_HOST"] . $_SERVER["PHP_SELF"];
+$proto   = $_SERVER["HTTP_X_FORWARDED_PROTO"] ?? ($_SERVER["HTTPS"] ?? "http");
+$scheme  = ($proto === "https" || $proto === "on") ? "https" : "https"; // force https on Render
+$selfUrl = $scheme . "://" . $_SERVER["HTTP_HOST"] . $_SERVER["PHP_SELF"];
 ?>
 <!DOCTYPE html>
 <html lang="th">

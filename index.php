@@ -217,12 +217,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["action"])) {
             if (preg_match('/^66(\d{9})$/', $p, $m)) return '+66' . $m[1];
             return $p;
         }
-        // กรองตามเบอร์
+        // กรองตามเบอร์ (normalize ทั้งสองฝั่ง)
         if ($phone) {
             $pn = normalizePhone($phone);
             $all = array_values(array_filter($all, function($m) use ($pn) {
                 $n = normalizePhone($m["from"] ?? $m["to"] ?? "");
-                return $n === $pn || str_ends_with($n, ltrim($pn,'+')) || str_ends_with(ltrim($n,'+'), ltrim($pn,'+'));
+                return $n === $pn;
             }));
         }
 
@@ -445,7 +445,7 @@ function escHtml(s) {
 
 // ── Render ────────────────────────────────────────────────
 function renderMsgs() {
-  const phone     = document.getElementById('toInput').value.trim().replace(/\s/g,'');
+  const phone     = normalizePhone(document.getElementById('toInput').value.trim());
   const container = document.getElementById('msgs');
   const empty     = document.getElementById('emptyState');
 
@@ -508,7 +508,7 @@ async function fetchMessages() {
 
 // ── Send SMS ──────────────────────────────────────────────
 async function sendSMS() {
-  const phone = document.getElementById('toInput').value.trim();
+  const phone = normalizePhone(document.getElementById('toInput').value.trim());
   const text  = document.getElementById('msgInput').value.trim();
   if (!phone) { showToast('กรุณาใส่เบอร์ปลายทาง','err'); return; }
   if (!text)  { showToast('กรุณาพิมพ์ข้อความ','err'); return; }

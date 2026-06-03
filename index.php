@@ -15,17 +15,6 @@ $OUTBOX_FILE = (getenv("RENDER") ? "/var/www/html/data" : __DIR__) . "/sms_outbo
 // ============================================================
 // Helper: Basic Auth
 // ============================================================
-function normalizePhone($phone) {
-    $phone = preg_replace('/\s+/', '', $phone);
-
-    // 0812345678 -> +66812345678
-    if (preg_match('/^0\d{8,9}$/', $phone)) {
-        $phone = '+66' . substr($phone, 1);
-    }
-
-    return $phone;
-}
-
 function authHeader() {
     global $USERNAME, $PASSWORD;
     return "Authorization: Basic " . base64_encode("$USERNAME:$PASSWORD");
@@ -140,7 +129,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["action"])) {
 
     // ── ส่ง SMS ──────────────────────────────────────────────
     if ($_POST["action"] === "send") {
-        $phone = normalizePhone($_POST["phone"] ?? "");
+        $phone   = trim($_POST["phone"] ?? "");
         $message = trim($_POST["message"] ?? "");
         if (!$phone || !$message) {
             echo json_encode(["success" => false, "error" => "กรุณาระบุเบอร์และข้อความ"]);
@@ -217,12 +206,19 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["action"])) {
             return strcmp($ta, $tb);
         });
 
+        // normalize เบอร์: 08x -> +668x, 66x -> +66x
+        function normalizePhone($p) {
+            $p = preg_replace('/[\s\-()]/', '', $p);
+            if (preg_match('/^0(\d{9})$/', $p, $m)) return '+66' . $m[1];
+            if (preg_match('/^66(\d{9})$/', $p, $m)) return '+66' . $m[1];
+            return $p;
+        }
         // กรองตามเบอร์
         if ($phone) {
-            $p   = preg_replace('/\s+/', '', $phone);
-            $all = array_values(array_filter($all, function($m) use ($p) {
-                $n = preg_replace('/\s+/', '', $m["from"] ?? $m["to"] ?? "");
-                return $n === $p || str_ends_with($n, $p) || str_ends_with($p, $n);
+            $pn = normalizePhone($phone);
+            $all = array_values(array_filter($all, function($m) use ($pn) {
+                $n = normalizePhone($m["from"] ?? $m["to"] ?? "");
+                return $n === $pn || str_ends_with($n, ltrim($pn,'+')) || str_ends_with(ltrim($n,'+'), ltrim($pn,'+'));
             }));
         }
 
@@ -257,6 +253,29 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["action"])) {
     if ($_POST["action"] === "list_webhooks") {
         $res = apiRequest("GET", "/webhooks");
         echo json_encode(["success" => $res["code"] === 200, "data" => $res["data"]]);
+        exit;
+    }
+
+    // ── ลบ webhook ตาม id ──────────────────────────────────
+    if ($_POST["action"] === "delete_webhook") {
+        $id  = trim($_POST["webhook_id"] ?? "");
+        $res = apiRequest("DELETE", "/webhooks/" . urlencode($id));
+        echo json_encode(["success" => $res["code"] === 204, "code" => $res["code"]]);
+        exit;
+    }
+
+    // ── ลบ webhook ทั้งหมด ─────────────────────────────────
+    if ($_POST["action"] === "delete_all_webhooks") {
+        $list = apiRequest("GET", "/webhooks");
+        $deleted = 0; $errors = [];
+        if ($list["code"] === 200 && is_array($list["data"])) {
+            foreach ($list["data"] as $wh) {
+                $r = apiRequest("DELETE", "/webhooks/" . urlencode($wh["id"]));
+                if ($r["code"] === 204) $deleted++;
+                else $errors[] = $wh["id"];
+            }
+        }
+        echo json_encode(["success" => true, "deleted" => $deleted, "errors" => $errors]);
         exit;
     }
 
@@ -350,6 +369,7 @@ h1{font-size:17px;font-weight:700;color:#185FA5;letter-spacing:.3px}
   <div class="setup-row">
     <button class="reg-btn" onclick="registerWebhook()">🔗 ลงทะเบียน Webhook</button>
     <button class="reg-btn" style="background:#4a7a4a" onclick="listWebhooks()">📋 ดู Webhooks</button>
+    <button class="reg-btn" style="background:#8B2020" onclick="deleteAllWebhooks()">🗑️ ลบทั้งหมด</button>
     <span id="regStatus"></span>
   </div>
 </div>
@@ -366,7 +386,7 @@ h1{font-size:17px;font-weight:700;color:#185FA5;letter-spacing:.3px}
 
   <div class="tobar">
     <span class="tolabel">ถึง:</span>
-    <input class="toinput" id="toInput" type="tel" placeholder="เบอร์ เช่น +66812345678" oninput="onPhoneChange()">
+    <input class="toinput" id="toInput" type="tel" placeholder="เบอร์ เช่น 0812345678 หรือ +66812345678" oninput="onPhoneChange()">
   </div>
 
   <div class="msgs" id="msgs">
@@ -386,22 +406,10 @@ h1{font-size:17px;font-weight:700;color:#185FA5;letter-spacing:.3px}
 <div class="toast" id="toast"></div>
 
 <script>
-
-    
 let allMessages = [];
 let pollTimer   = null;
 let lastPhone   = '';
 
-
-    function normalizePhone(phone) {
-  phone = phone.replace(/\s/g,'');
-
-  // 0812345678 -> +66812345678
-  if (/^0\d{8,9}$/.test(phone)) {
-    phone = '+66' + phone.substring(1);
-  }
-  return phone;
-}
 // ── Toast ─────────────────────────────────────────────────
 function showToast(msg, type='') {
   const t = document.getElementById('toast');
@@ -467,6 +475,12 @@ function renderMsgs() {
 }
 
 // ── Fetch messages ────────────────────────────────────────
+function normalizePhone(p) {
+  p = p.replace(/[\s\-()]/g,'');
+  if (/^0(\d{9})$/.test(p)) return '+66' + p.slice(1);
+  if (/^66(\d{9})$/.test(p)) return '+66' + p.slice(2);
+  return p;
+}
 async function fetchMessages() {
   const phone = normalizePhone(document.getElementById('toInput').value.trim());
   const fd    = new FormData();
@@ -490,7 +504,7 @@ async function fetchMessages() {
 
 // ── Send SMS ──────────────────────────────────────────────
 async function sendSMS() {
-  const phone = normalizePhone(document.getElementById('toInput').value.trim());
+  const phone = document.getElementById('toInput').value.trim();
   const text  = document.getElementById('msgInput').value.trim();
   if (!phone) { showToast('กรุณาใส่เบอร์ปลายทาง','err'); return; }
   if (!text)  { showToast('กรุณาพิมพ์ข้อความ','err'); return; }
@@ -553,15 +567,52 @@ async function listWebhooks() {
   const json = await res.json();
   if (json.success && Array.isArray(json.data)) {
     if (json.data.length === 0) {
-      st.textContent = 'ยังไม่มี webhook ลงทะเบียน';
+      st.innerHTML = 'ยังไม่มี webhook ลงทะเบียน';
     } else {
       st.innerHTML = json.data.map(w =>
-        `✅ <code style="font-size:11px">${w.event} → ${w.url}</code>`
-      ).join('<br>');
+        `<div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+          <code style="font-size:11px;flex:1">${w.event} → ${w.url}</code>
+          <button onclick="deleteWebhook('${w.id}')" style="background:#8B2020;color:#fff;border:none;border-radius:5px;padding:2px 8px;font-size:11px;cursor:pointer">ลบ</button>
+        </div>`
+      ).join('');
     }
     st.style.color = '#444';
   } else {
-    st.textContent = '❌ ดึงรายการไม่ได้';
+    st.innerHTML = '❌ ดึงรายการไม่ได้';
+    st.style.color = '#a32d2d';
+  }
+}
+
+// ── Delete one webhook ────────────────────────────────────
+async function deleteWebhook(id) {
+  if (!confirm('ลบ webhook นี้?')) return;
+  const fd = new FormData();
+  fd.append('action','delete_webhook');
+  fd.append('webhook_id', id);
+  const res  = await fetch('', {method:'POST', body:fd});
+  const json = await res.json();
+  if (json.success) {
+    showToast('ลบ webhook สำเร็จ','ok');
+    listWebhooks();
+  } else {
+    showToast('ลบไม่สำเร็จ code:'+json.code,'err');
+  }
+}
+
+// ── Delete ALL webhooks ───────────────────────────────────
+async function deleteAllWebhooks() {
+  if (!confirm('ลบ webhook ทั้งหมด?')) return;
+  const st = document.getElementById('regStatus');
+  st.textContent = 'กำลังลบ...';
+  const fd = new FormData(); fd.append('action','delete_all_webhooks');
+  const res  = await fetch('', {method:'POST', body:fd});
+  const json = await res.json();
+  if (json.success) {
+    st.textContent = `✅ ลบแล้ว ${json.deleted} รายการ`;
+    st.style.color = '#2a6a2a';
+    showToast(`ลบ webhook ${json.deleted} รายการสำเร็จ`,'ok');
+  } else {
+    st.textContent = '❌ ลบไม่สำเร็จ';
     st.style.color = '#a32d2d';
   }
 }

@@ -15,6 +15,17 @@ $OUTBOX_FILE = (getenv("RENDER") ? "/var/www/html/data" : __DIR__) . "/sms_outbo
 // ============================================================
 // Helper: Basic Auth
 // ============================================================
+function normalizePhone($phone) {
+    $phone = preg_replace('/\s+/', '', $phone);
+
+    // 0812345678 -> +66812345678
+    if (preg_match('/^0\d{8,9}$/', $phone)) {
+        $phone = '+66' . substr($phone, 1);
+    }
+
+    return $phone;
+}
+
 function authHeader() {
     global $USERNAME, $PASSWORD;
     return "Authorization: Basic " . base64_encode("$USERNAME:$PASSWORD");
@@ -129,7 +140,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["action"])) {
 
     // ── ส่ง SMS ──────────────────────────────────────────────
     if ($_POST["action"] === "send") {
-        $phone   = trim($_POST["phone"] ?? "");
+        $phone = normalizePhone($_POST["phone"] ?? "");
         $message = trim($_POST["message"] ?? "");
         if (!$phone || !$message) {
             echo json_encode(["success" => false, "error" => "กรุณาระบุเบอร์และข้อความ"]);
@@ -375,10 +386,22 @@ h1{font-size:17px;font-weight:700;color:#185FA5;letter-spacing:.3px}
 <div class="toast" id="toast"></div>
 
 <script>
+
+    
 let allMessages = [];
 let pollTimer   = null;
 let lastPhone   = '';
 
+
+    function normalizePhone(phone) {
+  phone = phone.replace(/\s/g,'');
+
+  // 0812345678 -> +66812345678
+  if (/^0\d{8,9}$/.test(phone)) {
+    phone = '+66' + phone.substring(1);
+  }
+  return phone;
+}
 // ── Toast ─────────────────────────────────────────────────
 function showToast(msg, type='') {
   const t = document.getElementById('toast');
@@ -467,7 +490,7 @@ async function fetchMessages() {
 
 // ── Send SMS ──────────────────────────────────────────────
 async function sendSMS() {
-  const phone = document.getElementById('toInput').value.trim();
+  const phone = normalizePhone(document.getElementById('toInput').value.trim());
   const text  = document.getElementById('msgInput').value.trim();
   if (!phone) { showToast('กรุณาใส่เบอร์ปลายทาง','err'); return; }
   if (!text)  { showToast('กรุณาพิมพ์ข้อความ','err'); return; }

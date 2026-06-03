@@ -1,0 +1,7 @@
+{
+  "name": "smsgateway/cloud-chat",
+  "description": "SMS Gateway Cloud Chat",
+  "require": {
+    "php": ">=8.0"
+  }
+}

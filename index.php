@@ -79,24 +79,26 @@ if (isset($_GET["webhook"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
     writeJson($DEBUG_FILE, $debugLog);
 
     if ($data) {
-        // รองรับทุก format: { event, payload:{} } หรือ flat {}
         $payload = $data["payload"] ?? $data;
         $from    = $payload["phoneNumber"] ?? $payload["sender"] ?? $payload["from"] ?? "";
         $message = $payload["message"]     ?? $payload["text"]   ?? $payload["body"]
                 ?? $payload["content"]    ?? $payload["contentPreview"] ?? "";
 
         if ($from && $message) {
+            // id dedup: ใช้ messageId จาก payload (ถาวร) หรือ root id
+            $msgId = $payload["messageId"] ?? $data["id"] ?? uniqid("in_");
+
             $inbox = readJson($INBOX_FILE);
-            $msg   = [
-                "id"         => $payload["id"] ?? uniqid("in_"),
-                "from"       => $from,
-                "message"    => $message,
-                "receivedAt" => $payload["receivedAt"] ?? $payload["createdAt"] ?? $payload["date"] ?? date("c"),
-                "dir"        => "in",
-            ];
-            $ids = array_column($inbox, "id");
-            if (!in_array($msg["id"], $ids)) {
-                $inbox[] = $msg;
+            // dedup ด้วย messageId (ป้องกัน webhook ยิงซ้ำหลายครั้ง)
+            $exists = array_filter($inbox, fn($m) => ($m["id"] ?? "") === $msgId);
+            if (empty($exists)) {
+                $inbox[] = [
+                    "id"         => $msgId,
+                    "from"       => $from,
+                    "message"    => $message,
+                    "receivedAt" => $payload["receivedAt"] ?? $payload["createdAt"] ?? date("c"),
+                    "dir"        => "in",
+                ];
                 if (count($inbox) > 1000) $inbox = array_slice($inbox, -1000);
                 writeJson($INBOX_FILE, $inbox);
             }
